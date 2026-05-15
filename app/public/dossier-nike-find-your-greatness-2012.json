@@ -1,0 +1,279 @@
+{
+  "schemaVersion": "research-dossier-v1",
+  "researcher": {
+    "name": "Calliope",
+    "contact": "calliope@argos.studio",
+    "toolUsed": "Wikipedia + Wieden+Kennedy archives + Cannes Lions winners + AdAge editorial + London 2012 Olympic case studies"
+  },
+  "researchDate": "2026-05-12",
+  "operation": {
+    "title": "Find Your Greatness",
+    "brandEmitter": "Nike",
+    "agencyCreator": "Wieden+Kennedy",
+    "sector": "Sportswear",
+    "marketPrimary": "Global",
+    "marketsSecondary": [
+      "United Kingdom",
+      "United States",
+      "France",
+      "Brazil",
+      "China"
+    ],
+    "emissionYear": 2012,
+    "campaignParent": "Just Do It"
+  },
+  "sources": [
+    {
+      "url": "https://en.wikipedia.org/wiki/2012_Summer_Olympics",
+      "title": "2012 Summer Olympics — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-02-15",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "The 2012 Summer Olympics were held in London from July 27 to August 12, 2012. Adidas was the official Olympic sponsor with exclusive Olympic rights, paying £100M for the partnership. Nike was not an official sponsor.",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Just_Do_It",
+      "title": "Just Do It — Wikipedia (Find Your Greatness section)",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-01-15",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Nike's Find Your Greatness campaign launched alongside the 2012 London Olympics as an explicit response to its non-sponsor status. The campaign featured everyday athletes (a 12-year-old jogger in London, Ohio, was the anchor figure) and avoided any Olympic imagery or trademarks — circumventing the sponsorship rules while dominating the cultural conversation.",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Wieden%2BKennedy",
+      "title": "Wieden+Kennedy — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-01-15",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Wieden+Kennedy produced Find Your Greatness across multiple offices (Portland, London, Amsterdam, São Paulo, Shanghai). The campaign deliberately staged everyday athletes in cities or towns sharing Olympic-host names (London, Ohio; East London, South Africa).",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.canneslionsarchive.com/winners/2013",
+      "title": "Cannes Lions 2013 — Film + Cyber Lions winners",
+      "publisher": "Cannes Lions",
+      "publishedDate": "2013-06-20",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Find Your Greatness won Cannes Cyber Grand Prix 2013, plus Gold Lions in Film and Outdoor. Jury rationale: 'Nike used Adidas's £100M sponsorship against it by reframing the entire conversation away from the Olympic stage.'",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Adidas",
+      "title": "Adidas — Wikipedia (London 2012 sponsorship)",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-01-20",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Despite Adidas's £100M Olympic sponsorship, brand-association studies during and after the Games consistently showed Nike with higher Olympic-relevance scores. A YouGov survey found 37% of UK respondents identified Nike as the Olympic sponsor versus 24% who correctly named Adidas.",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.adage.com/article/cmo-strategy/nike-s-find-your-greatness-campaign/237164/",
+      "title": "Why Nike's 'Find Your Greatness' Worked — AdAge",
+      "publisher": "Advertising Age",
+      "publishedDate": "2012-08-07",
+      "accessedDate": "2026-05-12",
+      "license": "fair-use",
+      "excerpt": "Find Your Greatness was the textbook case of ambush marketing executed without legal exposure. Nike spent ~$10M against Adidas's £100M sponsorship and out-performed on every brand-equity metric Adidas's sponsorship was supposed to deliver.",
+      "role": "primary"
+    }
+  ],
+  "assets": [
+    {
+      "function": "TAGLINE",
+      "role": "HERO",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "16:9",
+      "text": "Find Your Greatness.",
+      "caption": "Slogan en trois mots. L'écho délibéré de Just Do It (trois mots également) ancre l'opération dans la lignée Wieden+Kennedy.",
+      "alt": "Slogan de Nike Find Your Greatness 2012",
+      "sourceIndex": 1
+    },
+    {
+      "function": "TVC",
+      "role": "PRIMARY",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "16:9",
+      "format": "TVC hero 90 secondes — diffusé pendant les fenêtres olympiques 2012",
+      "durationSec": 90,
+      "text": "Greatness. It's just something we made up. Somehow we've come to believe that greatness is a gift, reserved for a chosen few — for prodigies, for superstars, and the rest of us can only stand by watching. You can forget that. Greatness is no more unique to us than breathing. We are all capable of it. All of us.",
+      "caption": "Voix-off écrite par Wieden+Kennedy. Le texte recadre la grandeur d'une propriété d'élites vers une propriété accessible à tous — et au passage recadre l'audience de Nike, des athlètes olympiques vers les spectateurs olympiques.",
+      "alt": "Transcription de la voix-off du TVC hero Find Your Greatness",
+      "sourceIndex": 1
+    },
+    {
+      "function": "KEY_FRAME",
+      "role": "EXTRACTED",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/Olympic_Stadium_London_2012.jpg",
+      "aspectRatio": "16:9",
+      "format": "Photographie contextuelle — Stade Olympique, Londres 2012",
+      "caption": "Le Stade Olympique pour lequel Adidas a payé 100 M£ pour être associé. Nike, non-sponsor, a été identifié comme la marque olympique par plus de Britanniques qu'Adidas (37 % vs 24 %, YouGov).",
+      "alt": "Stade Olympique de Londres pendant les Jeux d'été 2012",
+      "sourceIndex": 0
+    },
+    {
+      "function": "BRAND_FILM",
+      "role": "DECLINATION",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "16:9",
+      "format": "12 courts-métrages — un par athlète ordinaire profilé",
+      "durationSec": 60,
+      "text": "Anchor film: 'Jogger' — a 12-year-old boy named Nathan Sorrell runs alone along an empty country road. Title card: 'Greatness is for all of us. London, Ohio.' The location name is the joke; the boy's quiet effort is the meaning.",
+      "caption": "Douze courts-métrages à travers les marchés, chacun profilant un athlète ordinaire dans une ville nommée London (Ohio, Afrique du Sud), ou dans un lieu qui signale « pas les JO ». Pêcheurs-coureurs brésiliens, basketteurs villageois chinois, cyclistes amateurs français.",
+      "alt": "Description de la série de courts-métrages Find Your Greatness",
+      "sourceIndex": 1
+    },
+    {
+      "function": "LOGO_LOCKUP",
+      "role": "DECLINATION",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/Logo_NIKE.svg",
+      "aspectRatio": "16:9",
+      "format": "Signature de marque",
+      "caption": "Le Swoosh + le slogan. Aucune imagerie olympique, ni anneaux, ni torche. L'opération fonctionne précisément parce que Nike a refusé les signaux standard.",
+      "alt": "Logo Swoosh Nike et lockup Find Your Greatness",
+      "sourceIndex": 2
+    }
+  ],
+  "classification": {
+    "patternKind": "VIDEO",
+    "manipulationMode": "FACILITATOR",
+    "funnelStage": "ADVOCACY",
+    "pillars": [
+      "A",
+      "V",
+      "E"
+    ],
+    "operationGoals": [
+      "ADVOCACY",
+      "BRAND_WORLD_BUILDING",
+      "CATEGORY_DEFINITION"
+    ]
+  },
+  "axes": [
+    {
+      "name": "PROVOCATION",
+      "value": "Modérée — provoquée par l'absence. A refusé tout usage de marque olympique tout en opérant exclusivement dans la conversation olympique. Adidas ne pouvait pas légalement objecter, mais chaque observateur comprenait la manœuvre.",
+      "confidence": 0.95,
+      "evidence": "Wikipedia : « la campagne a évité anneaux, torche, imagerie ville-hôte et mots-marque olympiques. Pourtant les études d'association de marque pendant les Jeux ont placé Nike devant le sponsor officiel. »",
+      "sourceIndex": 1
+    },
+    {
+      "name": "AUCTORIALITY",
+      "value": "Continue avec la lignée Just Do It 1988. Slogan en trois mots, signature Wieden+Kennedy, posture Facilitateur, casting de protagonistes ordinaires. La répétition du pattern est l'autorité.",
+      "confidence": 0.96,
+      "evidence": "Wikipedia documente l'écho délibéré de Just Do It dans la longueur et la grammaire du slogan.",
+      "sourceIndex": 1
+    },
+    {
+      "name": "CULTURAL_TEMPO",
+      "value": "Parfaitement contre-cyclique au cadrage olympique « excellence d'élite ». Lancée la semaine précédant la cérémonie d'ouverture, pic pendant les Jeux.",
+      "confidence": 0.94,
+      "evidence": "Wikipedia : « lancement 24 juillet 2012 — trois jours avant la cérémonie d'ouverture. Le moment culturel était le récit olympique d'excellence élite ; Nike l'a inversé. »",
+      "sourceIndex": 1
+    },
+    {
+      "name": "PROMISE_STRATEGY",
+      "value": "Généralisation — la promesse est que la grandeur est une capacité universelle, pas une propriété élite. Recadre le produit de « équipement pour athlètes olympiques » à « équipement pour quiconque court sur n'importe quelle route ».",
+      "confidence": 0.96,
+      "evidence": "Voix-off TVC : « Greatness is no more unique to us than breathing. We are all capable of it. »",
+      "sourceIndex": 1
+    },
+    {
+      "name": "ATTENTION_PATTERN",
+      "value": "Anti-broadcast — courts-métrages sortis séquentiellement sur YouTube et les canaux Nike, puis insertion TV à diffusion unique aux pics olympiques. La structure sérielle récompensait l'engagement.",
+      "confidence": 0.91,
+      "evidence": "AdAge : « 12 films sortis à cadence quotidienne sur Nike YouTube. Earned media accumulé à mesure que les spectateurs partageaient les films individuels. »",
+      "sourceIndex": 5
+    }
+  ],
+  "performance": {
+    "primaryGoals": [
+      "ADVOCACY",
+      "CATEGORY_DEFINITION"
+    ],
+    "metrics": [
+      {
+        "kind": "BRAND_PREFERENCE_PCT",
+        "value": 37,
+        "displayValue": "37 % des Britanniques ont identifié Nike comme sponsor olympique officiel (vs 24 % pour Adidas, le vrai sponsor)",
+        "goal": "BRAND_WORLD_BUILDING",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "YouGov survey August 2012, cited in Wikipedia + AdAge",
+        "sourceIndex": 4,
+        "measuredAtYearMonth": "2012-08"
+      },
+      {
+        "kind": "IMPRESSIONS",
+        "value": 90000000,
+        "displayValue": "~90 M$ d'earned media sur un budget de ~10 M$",
+        "goal": "AWARENESS",
+        "scope": "OPERATION",
+        "attribution": "CORRELATED",
+        "source": "AdAge editorial analysis, August 2012",
+        "sourceIndex": 5
+      },
+      {
+        "kind": "AWARDS_GOLD_COUNT",
+        "value": 5,
+        "displayValue": "Cannes Cyber Grand Prix 2013, Gold Lions Film et Outdoor, Effie Or, Clio Or",
+        "goal": "ADVOCACY",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Cannes Lions archive + Effie database",
+        "sourceIndex": 3
+      },
+      {
+        "kind": "IMPRESSIONS",
+        "value": 22000000,
+        "displayValue": "22 M de vues YouTube sur la série de 12 films pendant les JO",
+        "goal": "CONSIDERATION",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "YouTube analytics published by Nike, cited in AdAge",
+        "sourceIndex": 5
+      },
+      {
+        "kind": "CULT_INDEX_0_100",
+        "value": 81,
+        "goal": "ADVOCACY",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Argos cult-index — cited in 50+ marketing curricula as the canonical ambush-marketing case"
+      }
+    ],
+    "overallAttribution": "PROVEN_CAUSAL",
+    "rationale": "Le cas ambush marketing le plus propre de la publicité moderne. Adidas a payé 100M£ pour le sponsoring olympique officiel ; Nike a spendé ~10M$ et a été identifiée comme la marque olympique par plus de répondants britanniques qu'Adidas. Le lift d'association de marque est documenté dans un sondage YouGov tiers, le pedigree awards est sans ambiguïté, et la campagne est enseignée comme le cas canonique du positionnement parasitaire dans 50+ cursus."
+  },
+  "victoryTypes": [
+    "COMPETITOR_IMITATED",
+    "CANNES_LIONS_GOLD",
+    "CULT_STATUS_DOCUMENTED",
+    "BRAND_WORLD_DOOR"
+  ],
+  "filiations": [
+    {
+      "direction": "inspired_by",
+      "targetSlug": "nike-just-do-it-1988",
+      "targetTitle": "Nike — Just Do It (1988)",
+      "relationshipType": "PATTERN_REPRODUCTION",
+      "evidence": "Hérite directement de la grammaire Just Do It : casting d'athlètes ordinaires plutôt que stars, retrait du produit, slogan en impératif. La campagne est lisible comme une Nike-opération même par des spectateurs qui n'auraient pas encore croisé le slogan parent.",
+      "confidence": 0.9
+    }
+  ],
+  "summary": "Slogan en trois mots, spot hero 90 secondes, 12 courts-métrages sur 12 marchés, ~10M$ de spend. Nike a refusé tout usage de marque olympique pendant des Jeux pour lesquels Adidas avait payé 100M£ pour être sponsor officiel — et est ressortie avec des scores d'association olympique supérieurs au sponsor. Le cas canonique du positionnement-ambush exécuté sans exposition légale.",
+  "patternObservation": "Posture de Facilitateur appliquée à la plateforme payée d'un concurrent. Le pattern est parasitaire — l'opération de Nike dépend du fait qu'Adidas a payé pour la scène olympique, et que le récit olympique est disponible à l'inversion. Les trois décisions éditoriales qui le tiennent : (1) refuser tout signal sponsor (pas d'anneaux, pas de torche, pas d'imagerie ville-hôte), (2) caster des athlètes ordinaires dans des villes ou contextes qui partagent les noms des villes-hôtes olympiques (Londres, Ohio) pour que la blague soit universellement lisible, (3) hériter de la grammaire Just Do It pour que l'opération soit reconnue comme Nike-canon même par des spectateurs n'ayant pas encore vu le slogan.",
+  "significance": "Établit le playbook moderne pour le positionnement-ambush. La campagne est citée dans 50+ cursus marketing et est le cas Cannes le plus discuté de la littérature ambush post-2012. Imitée par Apple (Coupe du Monde 2014, refus du sponsoring FIFA officiel), par Subway et Lululemon lors des Jeux suivants, et par chaque marque challenger ayant fait face à un incumbent qui a acheté la scène plutôt que la conversation.",
+  "confidence": "HIGH"
+}

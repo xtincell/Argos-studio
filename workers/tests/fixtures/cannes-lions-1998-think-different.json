@@ -1,0 +1,35 @@
+{
+  "brand": "Apple",
+  "agency": "TBWA\\Chiat\\Day",
+  "title": "Think Different — Here's to the crazy ones",
+  "year": 1998,
+  "caseUrl": "https://www.lovetheworkmore.com/cannes-lions/1998/think-different",
+  "festival": "Cannes Lions International Festival of Creativity",
+  "category": "Film",
+  "awards": ["Film Gold Lion 1998"],
+  "country": "United States",
+  "caseSummary": "In 1997, Apple was 90 days from bankruptcy. The brand had lost its narrative and its premium price position. TBWA\\Chiat\\Day's Think Different was launched with a single 60-second spot voiced by Richard Dreyfuss, followed by 17 print posters featuring historical figures (Einstein, MLK, Picasso, Lennon-Ono, Gandhi, Earhart, Hitchcock, etc.) and a POS rollout across 8,000 authorized retailers worldwide. The campaign ran continuously for 5 years and is widely credited with restoring Apple's brand premium ahead of the iMac launch.",
+  "campaignParent": "Think Different",
+  "mediaUrls": [
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/spot-60s.mp4",
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/poster-einstein.jpg",
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/poster-mlk.jpg",
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/poster-lennon-ono.jpg",
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/poster-picasso.jpg",
+    "https://cdn.lovetheworkmore.com/cannes/1998/apple-think-different/pos-retailer-window.jpg"
+  ],
+  "juryRationale": "Awarded Gold in Film 1998 for the rare achievement of a brand manifesto that doesn't show the product. The jury cited the operation's restraint, the calibrated weight of each historical figure chosen, and the fact that — uniquely among brand-rescue campaigns — it succeeded in restoring the brand's premium price position without a single product demonstration. Tagline 'Think different.' is grammatically incorrect on purpose, a choice the jury called 'a masterclass in editorial discipline.'",
+  "performanceNotes": {
+    "salesContext": "Apple sold ~5M iMacs in the 12 months following the iMac launch (May 1998), a record for the brand at the time. The iMac launched 18 months into the Think Different rollout.",
+    "brandPositionImpact": "Apple share price recovered from $13/share at Think Different launch (Sept 1997) to $35/share by end of 1998. Market cap roughly tripled.",
+    "culturalImpact": "Cited as inflection point in 47+ academic marketing analyses. Phrase 'Think different' entered popular usage and was added to Merriam-Webster in 2014.",
+    "longevity": "Campaign ran continuously from 1997 to 2002 (5 years). Tagline 'Think different.' was active brand wordmark from 1997 to 2002, retained as legacy mark afterward.",
+    "imitation": "47+ documented direct imitators in the brand-manifesto pattern since 1998 (Adidas Impossible Is Nothing, Honda Impossible Dream, Dove Real Beauty, Patagonia anti-claims, etc.)."
+  },
+  "creativeCredits": {
+    "creativeDirector": "Lee Clow",
+    "copywriter": "Rob Siltanen, Ken Segall",
+    "voiceOver": "Richard Dreyfuss",
+    "manifesto": "Rob Siltanen (uncredited at launch)"
+  }
+}

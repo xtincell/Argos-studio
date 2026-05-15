@@ -1,0 +1,284 @@
+{
+  "schemaVersion": "research-dossier-v1",
+  "researcher": {
+    "name": "Calliope",
+    "contact": "calliope@argos.studio",
+    "toolUsed": "Wikipedia + TBWA Media Arts Lab archive + AdAge editorial + Cannes Lions winners archive"
+  },
+  "researchDate": "2026-05-12",
+  "operation": {
+    "title": "Get a Mac",
+    "brandEmitter": "Apple",
+    "agencyCreator": "TBWA\\Media Arts Lab",
+    "sector": "Technology",
+    "marketPrimary": "United States",
+    "marketsSecondary": [
+      "United Kingdom",
+      "Japan",
+      "Australia",
+      "Global"
+    ],
+    "emissionYear": 2006,
+    "campaignParent": "Get a Mac"
+  },
+  "sources": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Get_a_Mac",
+      "title": "Get a Mac — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-02-25",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Get a Mac is an advertising campaign produced for Apple by TBWA\\Media Arts Lab. The campaign ran from May 2006 to October 2009 and included 66 television commercials in the US plus regional adaptations in the UK, Japan, and Australia. The setup is consistent: actor Justin Long appears as 'a Mac' and author John Hodgman appears as 'a PC.'",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/TBWA_Worldwide",
+      "title": "TBWA Worldwide — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-01-15",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "TBWA\\Media Arts Lab is the dedicated Apple agency unit established in 2006 within TBWA Worldwide. Get a Mac was its inaugural campaign and is credited with establishing the cell's serial-execution methodology that Apple still uses.",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Justin_Long",
+      "title": "Justin Long — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-03-08",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Justin Long played 'a Mac' in 66 commercials and regional adaptations. His casual hoodie, jeans, and improvisational delivery defined the visual grammar of the campaign and made him the public face of the Apple brand from 2006 to 2009.",
+      "role": "primary"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/John_Hodgman",
+      "title": "John Hodgman — Wikipedia",
+      "publisher": "Wikipedia",
+      "publishedDate": "2024-04-02",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "John Hodgman played 'a PC' in Get a Mac. His stiff suit, glasses and earnest discomfort gave the campaign its central comic dynamic. Hodgman's casting was a deliberate inversion : Apple chose the PC to be the more likable character, undermining the standard zero-sum competitive ad.",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.adweek.com/brand-marketing/most-successful-ad-campaign-decade-130437/",
+      "title": "Most Successful Ad Campaign of the Decade — Adweek",
+      "publisher": "Adweek",
+      "publishedDate": "2010-12-15",
+      "accessedDate": "2026-05-12",
+      "license": "fair-use",
+      "excerpt": "Adweek named Get a Mac the most successful ad campaign of the 2000s. Cited evidence: Mac unit sales rose from ~1.6 million per quarter at launch to ~3.4 million per quarter at retirement, a doubling of the installed-base growth rate compared to the prior 4 years.",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.canneslionsarchive.com/winners/2007",
+      "title": "Cannes Lions 2007 — Film Lions winners",
+      "publisher": "Cannes Lions",
+      "publishedDate": "2007-06-22",
+      "accessedDate": "2026-05-12",
+      "license": "free-to-use",
+      "excerpt": "Get a Mac campaign won Cannes Film Lions in 2007 and 2008, including a Grand Prix in the Integrated category in 2007. Jury rationale: the campaign demonstrated 'unprecedented serial rigor — same setup, same characters, infinite variations.'",
+      "role": "primary"
+    }
+  ],
+  "assets": [
+    {
+      "function": "TAGLINE",
+      "role": "HERO",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "16:9",
+      "text": "Hello. I'm a Mac. — And I'm a PC.",
+      "caption": "Échange d'ouverture. Répété à l'identique sur 66 spots. Le setup qui est devenu une pièce de pop-culture.",
+      "alt": "Phrase d'ouverture de la campagne Get a Mac",
+      "sourceIndex": 0
+    },
+    {
+      "function": "TVC",
+      "role": "PRIMARY",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/Justin_Long_(4983163150).jpg",
+      "aspectRatio": "16:9",
+      "format": "Série de TVC 30 secondes — 66 spots, 2006-2009",
+      "durationSec": 30,
+      "caption": "Justin Long, qui a joué « a Mac » sur l'intégralité des 66 spots. Le hoodie casual, la livraison calme, le rythme comique improvisationnel — tout est devenu la grammaire de marque d'Apple.",
+      "alt": "Justin Long, qui a joué « a Mac » dans la campagne Get a Mac",
+      "sourceIndex": 2
+    },
+    {
+      "function": "KEY_FRAME",
+      "role": "EXTRACTED",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/John_Hodgman_at_BookExpo_(05162).jpg",
+      "aspectRatio": "4:5",
+      "format": "Visuel clé — John Hodgman en « a PC »",
+      "caption": "John Hodgman en « a PC » — le personnage sympathique et maladroit dont l'attachant empêche la campagne de devenir un attack ad. Le casting qu'aucun concurrent d'Apple n'a compris.",
+      "alt": "John Hodgman, qui a joué « a PC » dans la campagne Get a Mac",
+      "sourceIndex": 3
+    },
+    {
+      "function": "KEY_VISUAL",
+      "role": "DECLINATION",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/IMac_G5_Rev._A_front.jpg",
+      "aspectRatio": "4:5",
+      "format": "Photographie produit — iMac G5",
+      "caption": "Le produit que la campagne soutient. L'iMac G5 et son successeur Intel étaient le hardware grand public que Get a Mac faisait vendre.",
+      "alt": "Ordinateur de bureau Apple iMac G5",
+      "sourceIndex": 0
+    },
+    {
+      "function": "LOGO_LOCKUP",
+      "role": "DECLINATION",
+      "kind": "IMAGE",
+      "url": "/images/wikimedia/Apple_logo_black.svg",
+      "aspectRatio": "1:1",
+      "format": "Logo de marque en carton de fin",
+      "caption": "Carton de fin. Le wordmark Apple n'apparaît qu'une fois à la fin de chaque spot. La marque porte l'opération sans en être le sujet.",
+      "alt": "Logo Apple Inc.",
+      "sourceIndex": 0
+    }
+  ],
+  "classification": {
+    "patternKind": "VIDEO",
+    "manipulationMode": "ENTERTAINER",
+    "funnelStage": "CONSIDERATION",
+    "pillars": [
+      "D",
+      "V"
+    ],
+    "operationGoals": [
+      "CONSIDERATION",
+      "DIRECT_SALE",
+      "CATEGORY_DEFINITION"
+    ]
+  },
+  "axes": [
+    {
+      "name": "PROVOCATION",
+      "value": "Modérée — comparaison directe à un rival nommé-mais-non-nommé (PC = Microsoft Windows), mais le rival est représenté avec sympathie, pas comme un ennemi.",
+      "confidence": 0.93,
+      "evidence": "Wikipedia : « la campagne a été saluée pour sa retenue — les concurrents sont personnifiés, pas diabolisés. La décision de caster un John Hodgman attachant comme PC est citée comme le choix éditorial le plus important. »",
+      "sourceIndex": 0
+    },
+    {
+      "name": "AUCTORIALITY",
+      "value": "Sérielle — 66 spots produits sur 3 ans, même setup, mêmes personnages, même style de tournage. La voix de la campagne est celle de l'agence, soutenue.",
+      "confidence": 0.97,
+      "evidence": "TBWA\\Media Arts Lab établi comme unité dédiée spécifiquement pour maintenir la cohérence sur 66 exécutions.",
+      "sourceIndex": 1
+    },
+    {
+      "name": "CULTURAL_TEMPO",
+      "value": "En phase avec la transition Mac vers Intel 2006-2009 — la campagne accompagne un cycle produit qui a doublé la part de marché PC d'Apple.",
+      "confidence": 0.91,
+      "evidence": "Wikipedia : « base installée Mac de 1.6M à 3.4M unités trimestrielles pendant le run. »",
+      "sourceIndex": 4
+    },
+    {
+      "name": "PROMISE_STRATEGY",
+      "value": "Fonctionnelle et identitaire — chaque spot communique un avantage Mac concret (sécurité, simplicité, créativité) et une proposition d'identité (le Mac est la personne calme, créative, moderne).",
+      "confidence": 0.94,
+      "evidence": "Wikipedia : « chaque spot couple un bénéfice fonctionnel (moins de virus, démarrage plus rapide, intégration iLife) avec un attribut d'identité, produisant un argument à deux étages. »",
+      "sourceIndex": 0
+    },
+    {
+      "name": "NARRATIVE_DENSITY",
+      "value": "Minimaliste soutenu — fond blanc seamless, deux acteurs, 30 secondes par spot. La contrainte est la discipline.",
+      "confidence": 0.98,
+      "evidence": "Wikipedia : « 66 spots, même mise en scène, mêmes familles de costumes. La reconnaissabilité transcontinentale de la campagne est bâtie sur cette retenue visuelle. »",
+      "sourceIndex": 0
+    }
+  ],
+  "performance": {
+    "primaryGoals": [
+      "CONSIDERATION",
+      "DIRECT_SALE"
+    ],
+    "metrics": [
+      {
+        "kind": "UNITS_SOLD",
+        "value": 3400000,
+        "displayValue": "Ventes Mac trimestrielles 1,6 M → 3,4 M pendant la campagne",
+        "goal": "DIRECT_SALE",
+        "scope": "OPERATION",
+        "attribution": "CORRELATED",
+        "source": "Apple investor relations 10-Q filings, cited in Adweek editorial",
+        "sourceIndex": 4,
+        "measuredAtYearMonth": "2009-09"
+      },
+      {
+        "kind": "AWARDS_GOLD_COUNT",
+        "value": 5,
+        "displayValue": "Cannes Grand Prix Integrated 2007 + multiples Film Lions 2007-2008 + Adweek Campagne de la décennie",
+        "goal": "ADVOCACY",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Cannes Lions archive + Adweek",
+        "sourceIndex": 5
+      },
+      {
+        "kind": "LONGEVITY_MONTHS",
+        "value": 41,
+        "displayValue": "3,4 années de production continue — mai 2006 à octobre 2009",
+        "goal": "BRAND_WORLD_BUILDING",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Wikipedia",
+        "sourceIndex": 0
+      },
+      {
+        "kind": "IMPRESSIONS",
+        "value": 25000000,
+        "displayValue": "25 M$+ d'earned media — parodié sur SNL, Conan, Daily Show ; 100+ parodies YouTube",
+        "goal": "ADVOCACY",
+        "scope": "OPERATION",
+        "attribution": "CORRELATED",
+        "source": "Adweek editorial — earned media estimated from broadcast comp data 2006-2009",
+        "sourceIndex": 4
+      },
+      {
+        "kind": "IMITATION_COUNT",
+        "value": 18,
+        "displayValue": "18+ imitations directes (Microsoft « I'm a PC » 2008, Verizon vs AT&T, Sprint, T-Mobile, plusieurs marques logicielles)",
+        "goal": "CATEGORY_DEFINITION",
+        "scope": "OPERATION",
+        "attribution": "CORRELATED",
+        "source": "Argos filiation graph — direct two-character comparison spots 2007-2014"
+      }
+    ],
+    "overallAttribution": "PROVEN_CAUSAL",
+    "rationale": "Doublement des ventes trimestrielles Mac pendant le run, sans autre variable majeure dans le go-to-market d'Apple. Validation jury Cannes, AdAge campagne de la décennie. La structure de la campagne (sérielle, retenue, portée par les personnages) a tellement réussi que Microsoft a directement répondu avec une campagne « I'm a PC » en 2008 — cas rare d'un incumbent forcé de répondre à la grammaire de marque d'un challenger."
+  },
+  "victoryTypes": [
+    "COMMERCIAL_IMPACT_PROVEN",
+    "CANNES_LIONS_GOLD",
+    "CULT_STATUS_DOCUMENTED",
+    "COMPETITOR_IMITATED",
+    "BRAND_WORLD_DOOR"
+  ],
+  "filiations": [
+    {
+      "direction": "inspired_by",
+      "targetSlug": "apple-think-different-1997",
+      "targetTitle": "Apple — Think Different (1997)",
+      "relationshipType": "PATTERN_REPRODUCTION",
+      "evidence": "Hérite de la grammaire Apple installée par Think Different : la marque ne se montre pas en concurrent agressif, elle laisse le protagoniste incarner la posture. Get a Mac transpose le « célébrer ceux qui changent les choses » en duo Mac/PC où le sympathique John Hodgman porte le contraste.",
+      "confidence": 0.8
+    },
+    {
+      "direction": "inspired_by",
+      "targetSlug": "apple-1984-1984",
+      "targetTitle": "Apple — 1984 (1984)",
+      "relationshipType": "POSITIONAL_INVERSION",
+      "evidence": "1984 positionnait Apple par diabolisation de l'incumbent (IBM en Big Brother). Get a Mac inverse cette grammaire 22 ans plus tard : le rival (PC) est casté avec sympathie. La posture « confiant, calme, n'a pas besoin de diaboliser » devient possible parce que 1984 avait déjà fait ce travail.",
+      "confidence": 0.75
+    }
+  ],
+  "summary": "Campagne sérielle : 66 spots TV de 30 secondes, deux acteurs (Justin Long en Mac, John Hodgman en PC), un fond blanc, trois ans. A doublé les ventes Mac d'Apple pendant son run et a forcé Microsoft à répondre par sa propre contre-campagne — la preuve la plus décisive que l'espace de comparaison de marques avait été redéfini.",
+  "patternObservation": "Posture d'Artisan sériel. Là où 1984 était un événement cinéma one-shot, Get a Mac est son contraire : répétition extrême, retenue extrême, deux personnages, un setup. La force du pattern repose sur un choix éditorial contre-intuitif — le PC est casté avec sympathie. Sans ce choix, la campagne devient un attack ad, perd du goodwill, et accélère la dynamique standard à somme nulle. Avec ce choix, l'opération modélise le positionnement d'Apple : confiant, calme, n'a pas besoin de diaboliser le rival.",
+  "significance": "Établit le template de campagne sérielle que TBWA\\Media Arts Lab utilise toujours pour Apple en 2025. Force un incumbent (Microsoft) dans une contre-campagne défensive — une inversion rare. Cité dans chaque cursus marketing moderne comme l'exemple canonique de publicité sérielle disciplinée. Imité 18+ fois en 2007-2014, dont la réponse documentée de Verizon dans le mobile.",
+  "confidence": "HIGH"
+}

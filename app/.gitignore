@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+build
+dist
+.vercel
+.env
+.env*.local
+*.log
+.DS_Store
+coverage
+playwright-report
+test-results
+.turbo
+.argos-store

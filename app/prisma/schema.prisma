@@ -1,0 +1,264 @@
+// Argos persistence schema.
+//
+// Dev provider : SQLite (zero-setup, embedded). Production target : PostgreSQL with
+// pgvector. The schema below is provider-agnostic — enums are stored as strings
+// (validated by Zod at the application layer in app/src/lib/research-dossier.ts)
+// and arrays are stored as JSON strings. The swap from SQLite to Postgres only
+// requires changing the `provider` below + DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reference — the central unit of Argos                                       */
+/* -------------------------------------------------------------------------- */
+
+model Reference {
+  id                            String   @id
+  slug                          String   @unique
+  title                         String
+
+  brandEmitter                  String
+  agencyCreator                 String?
+  sector                        String
+  marketPrimary                 String
+  marketsSecondaryJson          String   @default("[]") // JSON array of string
+  emissionYear                  Int
+  campaignParent                String?
+
+  patternKind                   String
+  manipulationMode              String
+  funnelStage                   String
+  pillarsJson                   String   @default("[]") // JSON array of Pillar codes (A,D,V,...)
+  operationGoalsJson            String   @default("[]") // JSON array of OperationGoal
+  victoryTypesJson              String   @default("[]") // JSON array of VictoryType
+
+  confidence                    String   // HIGH | MEDIUM | LOW | ESTIMATED
+
+  summary                       String
+  patternObservation            String?
+  significance                  String?
+
+  // Performance score (embedded fields — metrics in a separate table)
+  performanceComposite          Int      @default(50)
+  performancePrimaryGoalsJson   String   @default("[]")
+  performanceOverallAttribution String   // PROVEN_CAUSAL | CORRELATED | ESTIMATED | CLAIMED
+  performanceRationale          String?
+
+  // Provenance / audit
+  ingestPath                    String   // 'crawler-watch' | 'manual-dossier' | 'mock'
+  researcherName                String?  // for manual-dossier
+  researcherContact             String?
+  researcherToolUsed            String?
+  researchDate                  String?
+  ingestedAt                    DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  // Relations
+  assets                        Asset[]
+  axes                          StructuralAxis[]
+  metrics                       PerformanceMetric[]
+  sources                       ResearchSource[]
+  annotations                   ExpertAnnotation[]
+  filiationsFrom                Filiation[]         @relation("FromRef")
+  filiationsTo                  Filiation[]         @relation("ToRef")
+
+  @@index([brandEmitter])
+  @@index([sector])
+  @@index([marketPrimary])
+  @@index([emissionYear])
+  @@index([patternKind])
+  @@index([manipulationMode])
+  @@index([ingestPath])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Asset — the marketing output bundle units                                   */
+/* -------------------------------------------------------------------------- */
+
+model Asset {
+  id                  String   @id
+  referenceId         String
+  reference           Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  kind                String   // IMAGE | VIDEO | AUDIO | TEXT | EMBED_YOUTUBE | EMBED_VIMEO
+  function            String   // 47 marketing functions
+  role                String   // HERO | PRIMARY | DECLINATION | COMPANION | EXTRACTED
+
+  url                 String
+  posterUrl           String?
+  aspectRatio         String
+  text                String?
+  caption             String?
+  alt                 String?
+  durationSec         Int?
+  format              String?
+  extractionMethod    String?
+  derivedFromAssetId  String?
+  derivedFromAsset    Asset?   @relation("AssetDerivation", fields: [derivedFromAssetId], references: [id], onDelete: SetNull)
+  derivedAssets       Asset[]  @relation("AssetDerivation")
+
+  scopedMetrics       PerformanceMetric[] @relation("AssetMetrics")
+
+  // Stable order within the reference's asset bundle
+  position            Int      @default(0)
+
+  @@index([referenceId])
+  @@index([function])
+  @@index([kind])
+}
+
+/* -------------------------------------------------------------------------- */
+/* StructuralAxis — the 22 axes attributed to a Reference with evidence       */
+/* -------------------------------------------------------------------------- */
+
+model StructuralAxis {
+  id          String   @id @default(cuid())
+  referenceId String
+  reference   Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  name        String   // one of 22 StructuralAxisName values
+  value       String
+  confidence  Float
+  evidence    String?
+  sourceUrl   String?
+
+  @@index([referenceId])
+  @@index([name])
+}
+
+/* -------------------------------------------------------------------------- */
+/* PerformanceMetric — measurable outcomes attached to a Reference (or Asset) */
+/* -------------------------------------------------------------------------- */
+
+model PerformanceMetric {
+  id                  String   @id @default(cuid())
+  referenceId         String
+  reference           Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  kind                String   // 20 PerformanceMetricKind values
+  value               Float
+  displayValue        String?
+  goal                String   // OperationGoal
+  scope               String   // OPERATION | ASSET
+  scopedAssetId       String?
+  scopedAsset         Asset?   @relation("AssetMetrics", fields: [scopedAssetId], references: [id], onDelete: SetNull)
+  attribution         String   // AttributionConfidence
+  source              String
+  sourceUrl           String?
+  measuredAtYearMonth String?  // YYYY-MM
+
+  @@index([referenceId])
+  @@index([kind])
+  @@index([goal])
+}
+
+/* -------------------------------------------------------------------------- */
+/* ResearchSource — first-class sources for manual dossiers                    */
+/* -------------------------------------------------------------------------- */
+
+model ResearchSource {
+  id            String   @id @default(cuid())
+  referenceId   String
+  reference     Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  url           String
+  title         String
+  publisher     String?
+  publishedDate String?  // YYYY-MM-DD
+  accessedDate  String   // YYYY-MM-DD
+  license       String   // free-to-use | press-kit | fair-use | creator-permission | paid-license | unknown
+  excerpt       String?
+  role          String   // primary | secondary | context
+
+  @@index([referenceId])
+  @@index([license])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Filiation — directed edges between References (inspires / inspired_by)     */
+/* -------------------------------------------------------------------------- */
+
+model Filiation {
+  id          String   @id @default(cuid())
+  fromRefId   String
+  fromRef     Reference @relation("FromRef", fields: [fromRefId], references: [id], onDelete: Cascade)
+  toRefId     String
+  toRef       Reference @relation("ToRef", fields: [toRefId], references: [id], onDelete: Cascade)
+
+  type        String   // DIRECT_HOMAGE | PARODY | PASTICHE | PATTERN_REPRODUCTION | POSITIONAL_INVERSION | CITATION_EXPLICIT | CITATION_IMPLICIT
+  evidence    String?
+  confidence  Float    @default(0.7)
+
+  @@unique([fromRefId, toRefId])
+  @@index([fromRefId])
+  @@index([toRefId])
+}
+
+/* -------------------------------------------------------------------------- */
+/* ExpertAnnotation — Calliope and peer reviewers                              */
+/* -------------------------------------------------------------------------- */
+
+model ExpertAnnotation {
+  id              String   @id @default(cuid())
+  referenceId     String
+  reference       Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  annotatorName   String
+  type            String   // CONTEXTUAL_ANALYSIS | TECHNICAL_BREAKDOWN | STRATEGIC_INTERPRETATION | HISTORICAL_PLACEMENT | CRITIQUE | COUNTER_READING
+  content         String
+  targetedAxesJson String  @default("[]") // JSON array of StructuralAxisName
+  qualityScore    Float?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([referenceId])
+}
+
+/* -------------------------------------------------------------------------- */
+/* ConsultationRecord — the 8-phase consultation engine output                 */
+/* -------------------------------------------------------------------------- */
+
+model ConsultationRecord {
+  id                  String   @id @default(cuid())
+  briefJson           String   // JSON of the brief input
+  diagnosisJson       String   // JSON of the territorial diagnosis (Phase 2)
+  positionsProposedJson String // JSON of positions proposed (Phase 3)
+  positionChosenJson  String   // JSON of the chosen position (Phase 4)
+  challengeResultJson String   // JSON of the challenge pass result (Phase 5)
+  varianceBudget      Float    // Phase 6
+  injectedReferenceIdsJson String @default("[]") // refs injected in Phase 7
+
+  consultedAt         DateTime @default(now())
+  consumerType        String   // ARTEMIS_AUTO | HUMAN_DA | HUMAN_PLANNER | THIRD_PARTY_API | EXPERIMENT
+  consumerId          String?
+
+  resultingAssetId    String?
+  performanceMeasuredJson String? // post-hoc Seshat measurement
+
+  @@index([consultedAt])
+  @@index([consumerType])
+}
+
+/* -------------------------------------------------------------------------- */
+/* User — minimal stub for future Auth.js integration                          */
+/* -------------------------------------------------------------------------- */
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("free") // guest | free | pro_individual | pro_team_member | pro_team_admin | agency_admin | enterprise_admin | argos_admin
+  apiKey    String?  @unique // for REST API access
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

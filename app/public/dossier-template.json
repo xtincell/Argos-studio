@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "research-dossier-v1",
+  "researcher": {
+    "name": "",
+    "contact": "",
+    "toolUsed": ""
+  },
+  "researchDate": "YYYY-MM-DD",
+  "operation": {
+    "title": "",
+    "brandEmitter": "",
+    "agencyCreator": "",
+    "sector": "",
+    "marketPrimary": "",
+    "marketsSecondary": [],
+    "emissionYear": 0,
+    "campaignParent": ""
+  },
+  "sources": [
+    {
+      "url": "https://",
+      "title": "",
+      "publisher": "",
+      "publishedDate": "YYYY-MM-DD",
+      "accessedDate": "YYYY-MM-DD",
+      "license": "free-to-use",
+      "excerpt": "",
+      "role": "primary"
+    }
+  ],
+  "assets": [
+    {
+      "function": "TAGLINE",
+      "role": "HERO",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "4:3",
+      "text": "",
+      "caption": "",
+      "sourceIndex": 0
+    }
+  ],
+  "classification": {
+    "patternKind": "MIXED",
+    "manipulationMode": "FACILITATOR",
+    "funnelStage": "CONSIDERATION",
+    "pillars": ["A"],
+    "operationGoals": ["AWARENESS"]
+  },
+  "axes": [
+    {
+      "name": "PROMISE_STRATEGY",
+      "value": "",
+      "confidence": 0.8,
+      "evidence": "",
+      "sourceIndex": 0
+    }
+  ],
+  "performance": {
+    "primaryGoals": ["AWARENESS"],
+    "metrics": [],
+    "rationale": ""
+  },
+  "victoryTypes": [],
+  "filiations": [
+    {
+      "direction": "inspired_by",
+      "targetSlug": "apple-1984-1984",
+      "targetTitle": "Apple — 1984 (1984)",
+      "relationshipType": "PATTERN_REPRODUCTION",
+      "evidence": "Décrivez ici comment et pourquoi cette opération hérite/inverse/cite la cible. Le seeder résoudra targetSlug → refId, donc le slug doit correspondre exactement à l'opération déjà ingérée (voir /api/v1/references).",
+      "confidence": 0.7
+    }
+  ],
+  "summary": "",
+  "patternObservation": "",
+  "significance": "",
+  "confidence": "MEDIUM"
+}

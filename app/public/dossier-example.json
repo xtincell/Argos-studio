@@ -1,0 +1,236 @@
+{
+  "schemaVersion": "research-dossier-v1",
+  "researcher": {
+    "name": "Aïssata Kéita",
+    "contact": "akeita@example.com",
+    "toolUsed": "Argos Research Helper (artefact custom) + Google + LBB Africa archive"
+  },
+  "researchDate": "2026-03-18",
+  "operation": {
+    "title": "Ouvrez-vous",
+    "brandEmitter": "Société Générale Côte d'Ivoire",
+    "agencyCreator": "Voodoo Communication Abidjan",
+    "sector": "Banking",
+    "marketPrimary": "Côte d'Ivoire",
+    "marketsSecondary": ["Sénégal", "Burkina Faso", "Mali"],
+    "emissionYear": 2023,
+    "campaignParent": "Ouvrez-vous"
+  },
+  "sources": [
+    {
+      "url": "https://www.societegenerale.ci/fr/presse/communique-ouvrez-vous-2023/",
+      "title": "Société Générale Côte d'Ivoire lance Ouvrez-vous, une nouvelle plateforme de marque",
+      "publisher": "Société Générale Côte d'Ivoire — Espace Presse",
+      "publishedDate": "2023-04-12",
+      "accessedDate": "2026-03-18",
+      "license": "press-kit",
+      "excerpt": "Avec « Ouvrez-vous », la banque s'adresse aux Ivoiriens qui hésitent à franchir la porte d'une agence, et propose un modèle relationnel où la simplicité d'ouverture de compte devient un acte d'émancipation.",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.lbbonline.com/africa/news/societe-generale-ci-ouvrez-vous-2023",
+      "title": "Voodoo Abidjan Reframes Banking as Personal Liberation for Société Générale CI",
+      "publisher": "Little Black Book Africa",
+      "publishedDate": "2023-05-04",
+      "accessedDate": "2026-03-18",
+      "license": "fair-use",
+      "excerpt": "The 75-second hero film, directed by Philippe Lacôte, follows three Ivoirian women each opening their first bank account — a market researcher, a market trader, and a 23-year-old artist — and turns the simple act of signing a form into a declaration of self.",
+      "role": "secondary"
+    },
+    {
+      "url": "https://pikinefestival.com/laureats/2023/grand-prix-film",
+      "title": "Grand Prix Film 2023 — Ouvrez-vous, Société Générale CI",
+      "publisher": "Festival Pikine de la Créativité",
+      "publishedDate": "2023-11-21",
+      "accessedDate": "2026-03-18",
+      "license": "press-kit",
+      "excerpt": "Le jury salue la rare combinaison d'une exécution cinématographique de premier plan et d'une stratégie commerciale prouvée, dans une catégorie (banque) qui réussit rarement à concilier les deux.",
+      "role": "primary"
+    },
+    {
+      "url": "https://www.financialafrik.com/2024/02/sgci-ouverture-comptes-record-2023/",
+      "title": "Société Générale CI enregistre un record d'ouvertures de comptes en 2023, porté par la campagne Ouvrez-vous",
+      "publisher": "Financial Afrik",
+      "publishedDate": "2024-02-08",
+      "accessedDate": "2026-03-18",
+      "license": "fair-use",
+      "excerpt": "La banque rapporte 41 200 ouvertures de comptes au second semestre 2023, soit une progression de 38% par rapport au S2 2022. La direction commerciale attribue cette performance à la traction directe de la campagne Ouvrez-vous lancée en avril.",
+      "role": "primary"
+    }
+  ],
+  "assets": [
+    {
+      "function": "TAGLINE",
+      "role": "HERO",
+      "kind": "TEXT",
+      "url": "",
+      "aspectRatio": "4:3",
+      "text": "Ouvrez-vous.",
+      "caption": "Endline + nom de plateforme. Deux mots qui retournent la promesse bancaire : ce n'est pas la banque qui ouvre un compte, c'est le client qui s'ouvre au monde.",
+      "sourceIndex": 0
+    },
+    {
+      "function": "TVC",
+      "role": "PRIMARY",
+      "kind": "VIDEO",
+      "url": "https://www.youtube.com/watch?v=placeholder-sg-ci-ouvrez-vous-75s",
+      "posterUrl": "https://cdn.lbbonline.com/africa/sgci-ouvrez-vous-poster.jpg",
+      "aspectRatio": "16:9",
+      "format": "TVC 75s — RTI 1 + Canal+ Afrique + YouTube preroll",
+      "durationSec": 75,
+      "caption": "Film de 75 secondes réalisé par Philippe Lacôte. Trois portraits d'Ivoiriennes — chercheuse, commerçante, artiste — qui ouvrent leur premier compte.",
+      "alt": "Three Ivorian women open their first bank account in sequential scenes",
+      "sourceIndex": 1,
+      "sourceLicense": "fair-use"
+    },
+    {
+      "function": "OOH_BILLBOARD",
+      "role": "PRIMARY",
+      "kind": "IMAGE",
+      "url": "https://cdn.societegenerale.ci/presse/2023/ouvrez-vous-billboard-treichville.jpg",
+      "aspectRatio": "21:9",
+      "format": "OOH 8x3m — Abidjan Treichville, axe Boulevard Lagunaire",
+      "caption": "Hero OOH déployé sur 47 emplacements à Abidjan + 12 à Bouaké, 8 semaines de visibilité.",
+      "sourceIndex": 0
+    },
+    {
+      "function": "OOH_BILLBOARD",
+      "role": "DECLINATION",
+      "kind": "IMAGE",
+      "url": "https://cdn.societegenerale.ci/presse/2023/ouvrez-vous-billboard-dakar.jpg",
+      "aspectRatio": "21:9",
+      "format": "OOH 8x3m — Dakar Plateau, déclinaison Sénégal",
+      "caption": "Déclinaison sénégalaise du KV pour la branche SGBS, casting local.",
+      "sourceIndex": 0
+    },
+    {
+      "function": "RADIO_SPOT",
+      "role": "COMPANION",
+      "kind": "AUDIO",
+      "url": "https://cdn.societegenerale.ci/presse/2023/ouvrez-vous-radio-30s.mp3",
+      "aspectRatio": "4:3",
+      "format": "Radio 30s — Radio Côte d'Ivoire + Fréquence 2 + Nostalgie Abidjan",
+      "durationSec": 30,
+      "caption": "Adaptation audio du spot — VO 3 voix (chercheuse, commerçante, artiste).",
+      "sourceIndex": 0
+    },
+    {
+      "function": "SOCIAL_POST_VIDEO",
+      "role": "DECLINATION",
+      "kind": "VIDEO",
+      "url": "https://www.instagram.com/p/placeholder-sgci-ouvrez-vous-reel/",
+      "aspectRatio": "9:16",
+      "format": "Instagram Reel 30s — vertical cut",
+      "durationSec": 30,
+      "caption": "Reel 30s pour Instagram + Facebook Reels, cut vertical du TVC.",
+      "sourceIndex": 1
+    },
+    {
+      "function": "LANDING_PAGE",
+      "role": "COMPANION",
+      "kind": "IMAGE",
+      "url": "https://cdn.societegenerale.ci/presse/2023/ouvrez-vous-landing-page.jpg",
+      "aspectRatio": "16:9",
+      "format": "Landing — societegenerale.ci/ouvrez-vous (responsive)",
+      "caption": "Microsite avec formulaire d'ouverture de compte 4 étapes, intégration Orange Money pour validation KYC.",
+      "sourceIndex": 0
+    }
+  ],
+  "classification": {
+    "patternKind": "MIXED",
+    "manipulationMode": "FACILITATOR",
+    "funnelStage": "CONVERSION",
+    "pillars": ["A", "V", "E"],
+    "operationGoals": ["DIRECT_SALE", "AWARENESS", "ADVOCACY"]
+  },
+  "axes": [
+    {
+      "name": "PROMISE_STRATEGY",
+      "value": "Émotionnelle inversée — la banque ne promet pas un service, elle promet une émancipation personnelle dont elle est l'instrument.",
+      "confidence": 0.94,
+      "evidence": "Le communiqué presse SGCI cite explicitement « la simplicité d'ouverture de compte devient un acte d'émancipation » et le jury Pikine salue « la rare combinaison d'une exécution cinématographique de premier plan et d'une stratégie commerciale prouvée ».",
+      "sourceIndex": 0
+    },
+    {
+      "name": "CATEGORICAL_FIDELITY",
+      "value": "Faible — rompt avec le pattern banque francophone africaine (sérieux institutionnel, montrer des cravates et des immeubles).",
+      "confidence": 0.89,
+      "evidence": "Le film de Philippe Lacôte montre uniquement des Ivoiriennes en contexte de vie quotidienne (marché, atelier d'art, terrain de recherche), aucune image d'agence bancaire ni de costume institutionnel.",
+      "sourceIndex": 1
+    },
+    {
+      "name": "AUCTORIALITY",
+      "value": "Forte — réalisation Philippe Lacôte (cinéaste auteur reconnu, sélection Cannes 2020 pour 'La Nuit des rois'), production locale Voodoo Abidjan.",
+      "confidence": 0.97,
+      "evidence": "LBB Africa identifie nommément Philippe Lacôte comme réalisateur. Casting local non-célébrités — choix éditorial assumé.",
+      "sourceIndex": 1
+    },
+    {
+      "name": "CULTURAL_DECALAGE",
+      "value": "Négative — code culturel ivoirien natif (français parlé local, costumes, lieux, musique tirée de la scène coupé-décalé locale).",
+      "confidence": 0.91,
+      "evidence": "Le film se passe entièrement à Abidjan, Bouaké et Yamoussoukro, sans aucune iconographie occidentale superposée. La BO est composée par Magic System."
+    },
+    {
+      "name": "PROVOCATION",
+      "value": "Modérée — provocation interne à la catégorie banque (qui adresse rarement les femmes, et jamais comme protagonistes principales d'un récit d'émancipation).",
+      "confidence": 0.85,
+      "evidence": "L'analyse LBB Africa souligne que SGCI est la première banque francophone d'Afrique de l'Ouest à centrer une campagne sur trois protagonistes féminines.",
+      "sourceIndex": 1
+    }
+  ],
+  "performance": {
+    "primaryGoals": ["DIRECT_SALE", "AWARENESS"],
+    "metrics": [
+      {
+        "kind": "SALES_LIFT_PCT",
+        "value": 38,
+        "displayValue": "+38% ouvertures de compte S2 2023 vs S2 2022",
+        "goal": "DIRECT_SALE",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Financial Afrik 2024-02-08 — données direction commerciale SGCI avec marché de contrôle",
+        "sourceIndex": 3,
+        "measuredAtYearMonth": "2023-12"
+      },
+      {
+        "kind": "UNITS_SOLD",
+        "value": 41200,
+        "displayValue": "41 200 nouvelles ouvertures S2 2023",
+        "goal": "DIRECT_SALE",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Financial Afrik 2024-02-08",
+        "sourceIndex": 3,
+        "measuredAtYearMonth": "2023-12"
+      },
+      {
+        "kind": "RECALL_UNAIDED_PCT",
+        "value": 52,
+        "displayValue": "52% rappel non-aidé Abidjan, vague 2",
+        "goal": "AWARENESS",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Étude tracker Ipsos Côte d'Ivoire, post-wave Q3 2023",
+        "measuredAtYearMonth": "2023-09"
+      },
+      {
+        "kind": "AWARDS_GOLD_COUNT",
+        "value": 1,
+        "displayValue": "Grand Prix Film Pikine 2023",
+        "goal": "ADVOCACY",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Festival Pikine de la Créativité, palmarès 2023",
+        "sourceIndex": 2
+      }
+    ],
+    "overallAttribution": "PROVEN_CAUSAL",
+    "rationale": "Performance commerciale prouvée avec marché de contrôle (+38% ouvertures vs S2 2022), recall mesuré par tracker indépendant Ipsos, Grand Prix Pikine confirmé par jury sectoriel. Composite tiré par la conjonction rare de fort commercial + reconnaissance créative + signal catégoriel."
+  },
+  "victoryTypes": ["PIKINE_GRAND_PRIX", "COMMERCIAL_IMPACT_PROVEN", "LOCAL_DOMINANCE_PROVEN"],
+  "summary": "Société Générale Côte d'Ivoire renverse le contrat publicitaire bancaire : trois portraits d'Ivoiriennes qui ouvrent leur premier compte, réalisés par Philippe Lacôte. Le pattern Facilitator au plus pur — la banque s'efface pour laisser ses clientes occuper l'écran. +38% d'ouvertures de comptes au S2 2023 + Grand Prix Film Pikine.",
+  "patternObservation": "Facilitator mode appliqué avec une discipline rare en catégorie banque francophone africaine. La marque renonce volontairement à se montrer en image (aucune agence, aucun costume) et déplace tout le capital symbolique vers les trois protagonistes. La tagline « Ouvrez-vous » fait double-jeu : impératif commercial (« ouvrez un compte ») et impératif existentiel (« ouvrez-vous au monde »). C'est l'ambiguïté assumée qui rend le pattern défendable éditorialement.",
+  "significance": "Première opération bancaire francophone africaine documentée qui réussit la conjonction Facilitator + Direct sale + reconnaissance créative dans la même opération. Modèle probable pour les déclinaisons concurrentes (Ecobank, BICICI, NSIA) dans les 18-24 mois suivants. Référence-clé pour le pillar Authenticity dans le secteur bancaire francophone.",
+  "confidence": "HIGH"
+}

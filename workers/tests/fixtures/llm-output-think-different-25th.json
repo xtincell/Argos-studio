@@ -1,0 +1,189 @@
+{
+  "id": "ref_apple_think_different_25_years_2024",
+  "slug": "apple-think-different-25-years-2024",
+  "title": "Think Different — 25 Years",
+  "assets": [
+    {
+      "id": "a_td25_tagline",
+      "kind": "TEXT",
+      "function": "TAGLINE",
+      "role": "HERO",
+      "url": "",
+      "aspectRatio": "4:3",
+      "text": "Think different.",
+      "caption": "The original 1997 wordmark, returned unchanged. Anchors every asset in the 2024 operation.",
+      "extractionMethod": "OCR_FROM_IMAGE"
+    },
+    {
+      "id": "a_td25_hero_film",
+      "kind": "VIDEO",
+      "function": "BRAND_FILM",
+      "role": "PRIMARY",
+      "url": "https://www.apple.com/newsroom/videos/2024/01/think-different-25-hero.mp4",
+      "posterUrl": "https://www.apple.com/newsroom/images/2024/01/think-different-25-hero-poster.jpg",
+      "aspectRatio": "16:9",
+      "durationSec": 90,
+      "format": "Brand film 90s — Apple TV+ premiere Jan 24 2024",
+      "caption": "90-second hero film directed by Garth Davis, VO by Tilda Swinton. 25 contemporary visionaries from 14 countries.",
+      "extractionMethod": "PRIMARY_INGESTION"
+    },
+    {
+      "id": "a_td25_portrait_series",
+      "kind": "VIDEO",
+      "function": "CUT_DOWN",
+      "role": "DECLINATION",
+      "url": "https://www.apple.com/thinkdifferent/portraits",
+      "aspectRatio": "16:9",
+      "durationSec": 60,
+      "format": "25 portrait films 60s each — weekly release on YouTube + apple.com/thinkdifferent",
+      "caption": "Series of 25 individual portrait films, one per visionary, released weekly.",
+      "extractionMethod": "PRIMARY_INGESTION"
+    },
+    {
+      "id": "a_td25_ooh_paris",
+      "kind": "IMAGE",
+      "function": "OOH_BILLBOARD",
+      "role": "DECLINATION",
+      "url": "https://www.apple.com/newsroom/images/2024/01/think-different-25th-billboard-paris.jpg",
+      "aspectRatio": "21:9",
+      "format": "OOH 12x4m — Paris, January 2024",
+      "caption": "Photographic portrait by Annie Leibovitz. Deployed across 41 cities, 22 countries.",
+      "extractionMethod": "PRIMARY_INGESTION"
+    },
+    {
+      "id": "a_td25_ooh_tokyo",
+      "kind": "IMAGE",
+      "function": "OOH_BILLBOARD",
+      "role": "DECLINATION",
+      "url": "https://www.apple.com/newsroom/images/2024/01/think-different-25th-billboard-tokyo.jpg",
+      "aspectRatio": "21:9",
+      "format": "OOH 12x4m — Tokyo, January 2024",
+      "caption": "Tokyo declination — same photographic system, localised visionary.",
+      "extractionMethod": "PRIMARY_INGESTION"
+    },
+    {
+      "id": "a_td25_print_nyt",
+      "kind": "IMAGE",
+      "function": "PRINT_AD",
+      "role": "DECLINATION",
+      "url": "https://www.apple.com/newsroom/images/2024/01/think-different-25th-print-nyt.jpg",
+      "aspectRatio": "3:4",
+      "format": "Print double-spread — The New York Times + 17 global titles",
+      "caption": "Each spread profiles one of the 25 visionaries. Same typographic system as 1997 originals."
+    },
+    {
+      "id": "a_td25_microsite",
+      "kind": "IMAGE",
+      "function": "MICROSITE",
+      "role": "COMPANION",
+      "url": "https://www.apple.com/thinkdifferent",
+      "aspectRatio": "16:9",
+      "format": "apple.com/thinkdifferent — multilingual",
+      "caption": "Full bios, BTS content, and — a first for Apple — the downloadable creative brief made public."
+    },
+    {
+      "id": "a_td25_brief",
+      "kind": "TEXT",
+      "function": "CREATIVE_BRIEF_PUBLIC",
+      "role": "COMPANION",
+      "url": "https://www.apple.com/thinkdifferent/brief.pdf",
+      "aspectRatio": "3:4",
+      "format": "Creative brief PDF — public download",
+      "caption": "Apple's first publicly released creative brief. Editorial choice in itself."
+    },
+    {
+      "id": "a_td25_book",
+      "kind": "IMAGE",
+      "function": "MERCH",
+      "role": "COMPANION",
+      "url": "https://www.apple.com/newsroom/images/2024/01/think-different-25th-book.jpg",
+      "aspectRatio": "3:4",
+      "format": "Coffee-table book — Apple Park visitors + selected institutions",
+      "caption": "Proceeds to the featured visionary's chosen foundation."
+    }
+  ],
+  "brandEmitter": "Apple",
+  "agencyCreator": "TBWA\\Media Arts Lab",
+  "sector": "Technology",
+  "marketPrimary": "Global",
+  "marketsSecondary": ["United States", "France", "Japan", "United Kingdom", "Spain"],
+  "emissionYear": 2024,
+  "campaignParent": "Think Different",
+  "patternKind": "MIXED",
+  "manipulationMode": "DEALER",
+  "funnelStage": "ADVOCACY",
+  "pillars": ["A", "D", "I"],
+  "axes": [
+    {
+      "name": "SERIAL_RECURRENCE",
+      "value": "Direct 25-year revival of a hyper-canonical operation. Same wordmark, same agency lineage (TBWA), same single-tagline anchor.",
+      "confidence": 0.98,
+      "evidence": "Apple newsroom press release of 2024-01-15 explicitly cites the 1997 original and notes 'the wordmark returns unchanged'."
+    },
+    {
+      "name": "AUCTORIALITY",
+      "value": "Strong — named director (Garth Davis), photographer (Annie Leibovitz), composer (Hans Zimmer), VO (Tilda Swinton). Public creative brief is itself an editorial signature.",
+      "confidence": 0.95,
+      "evidence": "Press release lists all named creators and publishes the brief publicly."
+    },
+    {
+      "name": "EXTERNAL_REFERENTIALITY",
+      "value": "Maximal — 25 living visionaries from 14 countries replace the deceased icons of 1997. The referentiality structure is preserved but updated.",
+      "confidence": 0.93,
+      "evidence": "List of 25 visionaries from Doudna to Adichie published in the press release."
+    },
+    {
+      "name": "PROMISE_STRATEGY",
+      "value": "Spiritual — tribal belonging to a lineage of visionaries. Identical promise structure to 1997 original.",
+      "confidence": 0.92,
+      "evidence": "Direct line from manifesto-style positioning of 1997 to present iteration."
+    },
+    {
+      "name": "META_CONSCIOUSNESS",
+      "value": "Moderate — publishing the creative brief publicly signals self-awareness of the operation as cultural artefact, not just commerce.",
+      "confidence": 0.88,
+      "evidence": "Newsroom explicitly notes 'a first for Apple' on the public brief release."
+    }
+  ],
+  "operationGoals": ["BRAND_WORLD_BUILDING", "ADVOCACY", "CATEGORY_DEFINITION"],
+  "performance": {
+    "composite": 78,
+    "primaryGoals": ["BRAND_WORLD_BUILDING"],
+    "metrics": [
+      {
+        "kind": "LONGEVITY_MONTHS",
+        "value": 12,
+        "displayValue": "1 year (active)",
+        "goal": "BRAND_WORLD_BUILDING",
+        "scope": "OPERATION",
+        "attribution": "PROVEN_CAUSAL",
+        "source": "Apple newsroom timeline 2024-01-15",
+        "measuredAtYearMonth": "2024-12"
+      },
+      {
+        "kind": "CULTURAL_PENETRATION_0_100",
+        "value": 72,
+        "goal": "BRAND_WORLD_BUILDING",
+        "scope": "OPERATION",
+        "attribution": "ESTIMATED",
+        "source": "Argos cultural penetration index — leveraged from 1997 cult-index legacy"
+      },
+      {
+        "kind": "IMITATION_COUNT",
+        "value": 3,
+        "displayValue": "3 documented imitators (2024)",
+        "goal": "CATEGORY_DEFINITION",
+        "scope": "OPERATION",
+        "attribution": "CORRELATED",
+        "source": "Argos filiation graph — observed in tech category 12 months post-launch"
+      }
+    ],
+    "overallAttribution": "CORRELATED",
+    "rationale": "Strong design and editorial execution leveraging 25 years of pre-built cult-index legacy. Performance metrics still maturing one year post-launch — composite reflects projection rather than realised outcome."
+  },
+  "victoryTypes": ["BRAND_WORLD_DOOR", "CULT_STATUS_DOCUMENTED"],
+  "confidence": "HIGH",
+  "summary": "Apple revisits its 1997 Think Different campaign 25 years later with 25 contemporary visionaries, deploying a brand film, OOH across 41 cities, print, microsite, and — uniquely — a publicly released creative brief.",
+  "patternObservation": "A SERIAL_RECURRENCE play executed with editorial restraint. Same tagline, same manipulation mode (DEALER), same external-referentiality structure as 1997 — but with living rather than deceased icons and a self-aware publication of the brief. The operation borrows nothing from the contemporary product cycle (Apple Vision Pro launches two weeks later, but is held at arm's length).",
+  "significance": "The operation tests whether a 25-year-old brand manifesto pattern can re-anchor a brand identity in 2024. If the imitation count climbs over the next 24 months, it confirms that brand-manifesto revival is a viable late-cycle strategy for hyper-canonical brands."
+}

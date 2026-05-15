@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# Node / Next / build outputs
+node_modules
+.next
+out
+build
+dist
+.vercel
+.turbo
+
+# Local env
+.env
+.env*.local
+
+# Runtime artefacts
+*.log
+coverage
+playwright-report
+test-results
+
+# Argos artefacts
+.argos-store
+ARGOS\ STUDIO-handoff.zip
+argos-studio-unpacked
+
+# Editor / agent caches
+.claude
+
+# Local SQLite DBs (seeded from public/dossier-*.json)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
