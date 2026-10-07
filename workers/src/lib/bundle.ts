@@ -18,8 +18,8 @@ export interface BundlerResult {
 /**
  * Bundle parsed signals into deduplicated operations.
  * Each input signal that has a non-null reference becomes a candidate operation.
- * Candidates are grouped by (brand × emissionYear × campaignParent) — when those
- * match, we treat them as the same operation and merge assets.
+ * Candidates need the same operation id, slug, brand and year. Sharing an umbrella
+ * campaign alone is not sufficient evidence of operation identity.
  */
 export function bundleSignals(parsed: ParsedSignal[]): BundlerResult {
   const valid = parsed.filter((p) => p.reference !== null) as Array<
@@ -54,7 +54,7 @@ export function bundleSignals(parsed: ParsedSignal[]): BundlerResult {
     mergeLog.push({
       targetSlug: merged.slug,
       mergedFrom: group.map((p) => p.signal.id),
-      reason: `Same brand × year × campaign : ${key}`,
+      reason: `Same brand × year × operation id/slug : ${key}`,
     });
   }
 
@@ -70,7 +70,8 @@ function groupKey(ref: Reference): string {
   return [
     ref.brandEmitter.toLowerCase().trim(),
     ref.emissionYear,
-    (ref.campaignParent ?? ref.slug).toLowerCase().trim(),
+    ref.id,
+    ref.slug.toLowerCase().trim(),
   ].join('::');
 }
 
@@ -103,25 +104,15 @@ function mergeReferences(group: Array<ParsedSignal & { reference: Reference }>):
     }
   }
 
-  // Merge performance metrics: dedup by (kind, scope, scopedAssetId)
+  // Only identical evidence is replay. Different sources, dates, values or
+  // attribution claims must survive for the curator to assess disagreement.
   const metricsByKey = new Map<string, Reference['performance']['metrics'][number]>();
   for (const p of group) {
     for (const m of p.reference.performance.metrics) {
-      const key = `${m.kind}::${m.scope}::${m.scopedAssetId ?? '*'}`;
-      const existing = metricsByKey.get(key);
-      // Prefer PROVEN_CAUSAL > CORRELATED > ESTIMATED > CLAIMED
-      const priority: Record<string, number> = {
-        PROVEN_CAUSAL: 4,
-        CORRELATED: 3,
-        ESTIMATED: 2,
-        CLAIMED: 1,
-      };
-      if (
-        !existing ||
-        (priority[m.attribution] ?? 0) > (priority[existing.attribution] ?? 0)
-      ) {
-        metricsByKey.set(key, m);
-      }
+      const key = JSON.stringify([m.kind, m.scope, m.scopedAssetId ?? null,
+        m.goal, m.value, m.displayValue ?? null, m.source,
+        m.measuredAtYearMonth ?? null, m.attribution]);
+      if (!metricsByKey.has(key)) metricsByKey.set(key, m);
     }
   }
 

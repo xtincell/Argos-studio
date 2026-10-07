@@ -216,10 +216,18 @@ export interface BrandWatchResult {
   runDurationMs: number;
   mode: 'dry-run' | 'live';
   sourcesQueried: string[];
+  sourceReceipts: SourceReceipt[];
   signalsCollected: number;
   operationsIdentified: number;
   assetsExtracted: number;
   operations: Reference[];
   signalsLog: ParsedSignal[];
   perimeterCoverage: Record<SourcePerimeter, number>;
+}
+
+export interface SourceReceipt {
+  source: string;
+  perimeter: SourcePerimeter;
+  status: 'FIXTURE' | 'OBSERVED' | 'NO_SIGNAL' | 'PARTIAL' | 'UNAVAILABLE' | 'FAILED';
+  signalCount: number;
 }

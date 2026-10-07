@@ -1,5 +1,14 @@
 # Changelog Argos
 
+## Workers 0.1.1 — 2026-10-07
+
+- Refuse les options inconnues avant le choix du mode et la substitution de
+  fixtures à une source vivante indisponible.
+- Conserve les observations en cas de collecte partielle et qualifie chaque source.
+- Sépare les opérations sous une même ombrelle et conserve les mesures distinctes.
+- Dix tests hors réseau/LLM payant et typecheck ; collecte vivante et admission
+  canonique non reçues, dépendance au dossier manuel encore en brouillon.
+
 ## 0.1.1 — Intégrité du dossier manuel (2026-10-07)
 
 Les citations suivent le dossier transformé. Les axes et métriques conservent

@@ -8,6 +8,24 @@ permissions:
   contents: read
 
 jobs:
+  workers:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+        env:
+          ANTHROPIC_API_KEY: ''
+          DOTENV_CONFIG_PATH: /dev/null
   integrity:
     runs-on: ubuntu-latest
     defaults:

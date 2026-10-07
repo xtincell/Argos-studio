@@ -29,9 +29,7 @@ export const cannesLionsCrawler: SourceCrawler = {
 
   async crawl(config: SourceCrawlConfig): Promise<RawSignal[]> {
     if (!config.useFixtures) {
-      log.warn(
-        'cannes-lions live mode requires partnership API credentials; falling back to fixtures',
-      );
+      throw new Error('SOURCE_UNAVAILABLE: Cannes live access is not implemented. No fixture substituted.');
     }
     return crawlFromFixtures(config);
   },

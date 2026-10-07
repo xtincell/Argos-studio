@@ -1,6 +1,6 @@
 {
   "name": "argos-workers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Argos crawlers, brand watch agents, and extraction pipeline. Two-layer architecture (ADR-0008).",
@@ -9,7 +9,8 @@
     "watch:apple:dry": "tsx src/run-apple-watch.ts --dry-run",
     "crawl:apple-newsroom": "tsx src/sources/apple-newsroom.ts",
     "crawl:cannes-apple": "tsx src/sources/cannes-lions.ts apple",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
