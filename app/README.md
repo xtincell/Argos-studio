@@ -1,5 +1,20 @@
 # Argos Web
 
+## État vérifié au 7 octobre 2026
+
+L’application possède une bibliothèque Prisma/SQLite, des routes REST v1 et une
+admission JSON manuelle. Les lectures utilisent la base ; les fixtures ne sont
+pas une preuve de campagne collectée aujourd’hui. Les sections de bootstrap
+ci-dessous sont historiques : elles ne décrivent pas l’architecture intégralement.
+L’authentification, le serveur MCP et les consultations privées ne sont pas reçus.
+Voir [la réception d’intégrité](../docs/RECEPTION-INTEGRITE.md) et le changelog.
+
+Pour une base locale neuve, fournir `DATABASE_URL` à Prisma, appliquer
+`npx prisma migrate deploy`, puis utiliser `npm run db:seed` pour compléter le
+corpus. Le seed préserve le travail existant. Ne pas utiliser `db:reset` pour
+reprendre une base. `npm test` crée sa propre base jetable et n’utilise pas
+la base configurée par l’opérateur.
+
 Next.js application for Argos — face publique (moteur de recherche éditorial) + console expert + API REST + MCP server.
 
 ## Stack

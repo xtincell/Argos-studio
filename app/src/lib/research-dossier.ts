@@ -1,3 +1,4 @@
+import { slugify } from './utils';
 // ResearchDossier — the JSON contract for manual ingestion.
 //
 // A researcher (human + Claude artifact + their own toolkit) builds this object
@@ -298,6 +299,15 @@ export const ResearchDossierSchema = z
       }
     }
     // Exactly one HERO asset
+    for (const [i, metric] of dossier.performance.metrics.entries()) {
+      if (metric.sourceIndex !== undefined && metric.sourceIndex >= dossier.sources.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['performance', 'metrics', i, 'sourceIndex'],
+          message: 'sourceIndex is outside this dossier',
+        });
+      }
+    }
     const heroes = dossier.assets.filter((a) => a.role === 'HERO');
     if (heroes.length !== 1) {
       ctx.addIssue({
@@ -308,6 +318,13 @@ export const ResearchDossierSchema = z
     }
     // TEXT-kind assets must have text, non-TEXT must not rely on text alone
     for (const [i, asset] of dossier.assets.entries()) {
+      if (asset.sourceLicense === 'unknown') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['assets', i, 'sourceLicense'],
+          message: 'Asset license is unresolved. Resolve it before publication.',
+        });
+      }
       if (asset.kind === 'TEXT' && (!asset.text || asset.text.trim().length === 0)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -390,6 +407,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
     value: a.value,
     confidence: a.confidence,
     evidence: a.evidence,
+    sourceUrl: a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.url,
   }));
 
   const reference: Reference = {
@@ -416,6 +434,11 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
     summary: dossier.summary,
     patternObservation: dossier.patternObservation,
     significance: dossier.significance,
+    researcherName: dossier.researcher.name,
+    researcherToolUsed: dossier.researcher.toolUsed,
+    researchDate: dossier.researchDate,
+    ingestPath: 'manual-dossier',
+    researchSources: dossier.sources.map((source) => ({ ...source })),
   };
 
   return {
@@ -441,13 +464,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
 
 function generateSlug(dossier: ResearchDossier): string {
   const base = `${dossier.operation.brandEmitter}-${dossier.operation.title}-${dossier.operation.emissionYear}`;
-  return base
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
+  return slugify(base).slice(0, 80);
 }
 
 function buildPerformanceScore(
@@ -467,6 +484,7 @@ function buildPerformanceScore(
         : undefined,
     attribution: m.attribution,
     source: m.source,
+    sourceUrl: m.sourceIndex === undefined ? undefined : dossier.sources[m.sourceIndex]?.url,
     measuredAtYearMonth: m.measuredAtYearMonth,
   }));
 

@@ -6,7 +6,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { ResearchDossierSchema } from '@/lib/research-dossier';
-import { ingestDossier } from '@/server/ingest';
+import { ingestDossier, IngestValidationError } from '@/server/ingest';
 
 export async function POST(request: NextRequest) {
   let raw: unknown;
@@ -51,11 +51,17 @@ export async function POST(request: NextRequest) {
       { status: newlyCreated ? 201 : 200 },
     );
   } catch (err) {
+    if (err instanceof IngestValidationError) {
+      return NextResponse.json(
+        { ok: false, error: err.code, message: err.message },
+        { status: 422 },
+      );
+    }
     return NextResponse.json(
       {
         ok: false,
         error: 'STORE_FAILED',
-        message: err instanceof Error ? err.message : 'Could not persist reference',
+        message: 'Could not persist reference. No partial dossier was saved.',
       },
       { status: 500 },
     );

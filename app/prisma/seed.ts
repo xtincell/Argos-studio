@@ -35,14 +35,9 @@ const pendingFiliations: PendingFiliation[] = [];
 async function main() {
   console.log('═══ Argos DB seed ═══\n');
 
-  // Wipe existing rows for idempotency
-  const existing = await prisma.reference.findMany({ select: { id: true } });
-  if (existing.length > 0) {
-    console.log(`Cleaning ${existing.length} existing references (cascade)...`);
-    await prisma.reference.deleteMany({});
-  }
-
-  const seededSlugs = new Set<string>();
+  // The corpus is a bootstrap, not a restore: preserve operator work and annotations.
+  const existing = await prisma.reference.findMany({ select: { slug: true } });
+  const seededSlugs = new Set(existing.map((reference) => reference.slug));
 
   // 1) Real research dossiers (the authoritative source)
   console.log('\nLoading real research dossiers from public/dossier-*.json …');
@@ -62,6 +57,10 @@ async function main() {
         continue;
       }
       const { reference } = dossierToReference(parsed.data);
+      if (seededSlugs.has(reference.slug)) {
+        console.log(`  Preserved existing reference: ${reference.slug}`);
+        continue;
+      }
       await upsertReference(reference, {
         ingestPath: 'manual-dossier',
         researcherName: parsed.data.researcher.name,

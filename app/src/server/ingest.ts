@@ -5,7 +5,11 @@
 // Used by the POST /api/v1/ingest/dossier route.
 
 import { prisma } from '@/lib/db';
-import { dossierToReference, type ResearchDossier, type TransformResult } from '@/lib/research-dossier';
+import {
+  dossierToReference,
+  type ResearchDossier,
+  type TransformResult,
+} from '@/lib/research-dossier';
 
 export interface IngestRecord {
   result: TransformResult;
@@ -16,21 +20,30 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
   const result = dossierToReference(dossier);
   const ref = result.reference;
 
-  const existing = await prisma.reference.findUnique({ where: { id: ref.id } });
-  const newlyCreated = !existing;
-
-  await prisma.$transaction(async (tx) => {
+  const newlyCreated = await prisma.$transaction(async (tx) => {
+    const existing = await tx.reference.findUnique({ where: { id: ref.id } });
+    if (
+      existing &&
+      (existing.title !== ref.title ||
+        existing.brandEmitter !== ref.brandEmitter ||
+        existing.emissionYear !== ref.emissionYear)
+    ) {
+      throw new IngestValidationError(
+        'The generated identifier belongs to a different operation.',
+        'IDENTITY_CONFLICT',
+      );
+    }
     // Upsert the Reference row
     const data = {
       slug: ref.slug,
       title: ref.title,
       brandEmitter: ref.brandEmitter,
-      agencyCreator: ref.agencyCreator,
+      agencyCreator: ref.agencyCreator ?? null,
       sector: ref.sector,
       marketPrimary: ref.marketPrimary,
       marketsSecondaryJson: JSON.stringify(ref.marketsSecondary),
       emissionYear: ref.emissionYear,
-      campaignParent: ref.campaignParent,
+      campaignParent: ref.campaignParent ?? null,
       patternKind: ref.patternKind,
       manipulationMode: ref.manipulationMode,
       funnelStage: ref.funnelStage,
@@ -39,16 +52,16 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
       victoryTypesJson: JSON.stringify(ref.victoryTypes),
       confidence: ref.confidence,
       summary: ref.summary,
-      patternObservation: ref.patternObservation,
-      significance: ref.significance,
+      patternObservation: ref.patternObservation ?? null,
+      significance: ref.significance ?? null,
       performanceComposite: Math.round(ref.performance.composite),
       performancePrimaryGoalsJson: JSON.stringify(ref.performance.primaryGoals),
       performanceOverallAttribution: ref.performance.overallAttribution,
-      performanceRationale: ref.performance.rationale,
+      performanceRationale: ref.performance.rationale ?? null,
       ingestPath: 'manual-dossier',
       researcherName: dossier.researcher.name,
-      researcherContact: dossier.researcher.contact,
-      researcherToolUsed: dossier.researcher.toolUsed,
+      researcherContact: dossier.researcher.contact ?? null,
+      researcherToolUsed: dossier.researcher.toolUsed ?? null,
       researchDate: dossier.researchDate,
     };
     await tx.reference.upsert({
@@ -104,6 +117,7 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
           value: axis.value,
           confidence: axis.confidence,
           evidence: axis.evidence,
+          sourceUrl: axis.sourceUrl,
         },
       });
     }
@@ -120,6 +134,7 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
           scopedAssetId: m.scopedAssetId,
           attribution: m.attribution,
           source: m.source,
+          sourceUrl: m.sourceUrl,
           measuredAtYearMonth: m.measuredAtYearMonth,
         },
       });
@@ -140,7 +155,42 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
         },
       });
     }
+
+    for (const filiation of dossier.filiations) {
+      const target = await tx.reference.findUnique({ where: { slug: filiation.targetSlug } });
+      if (!target || target.id === ref.id) {
+        throw new IngestValidationError('Filiation target is missing or refers to this dossier.');
+      }
+      const fromRefId = filiation.direction === 'inspires' ? ref.id : target.id;
+      const toRefId = filiation.direction === 'inspires' ? target.id : ref.id;
+      await tx.filiation.upsert({
+        where: { fromRefId_toRefId: { fromRefId, toRefId } },
+        create: {
+          fromRefId,
+          toRefId,
+          type: filiation.relationshipType,
+          evidence: filiation.evidence,
+          confidence: filiation.confidence ?? 0.7,
+        },
+        update: {
+          type: filiation.relationshipType,
+          evidence: filiation.evidence ?? null,
+          confidence: filiation.confidence ?? 0.7,
+        },
+      });
+    }
+    return !existing;
   });
 
   return { result, newlyCreated };
+}
+
+// A typed error aborts Prisma's transaction before the route renders a refusal.
+export class IngestValidationError extends Error {
+  constructor(
+    message: string,
+    readonly code = 'INVALID_FILIATION',
+  ) {
+    super(message);
+  }
 }

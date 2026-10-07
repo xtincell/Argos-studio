@@ -10,6 +10,7 @@
 
 import { cache } from 'react';
 import { prisma, REFERENCE_INCLUDE, dbToReference } from './db';
+import { slugify } from './utils';
 import type {
   Asset,
   AssetFunction,
@@ -24,14 +25,7 @@ import type {
 } from './types';
 import { MOCK_SECTORS } from '@/data/mock-references';
 
-export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+export { slugify } from './utils';
 
 /* -------------------------------------------------------------------------- */
 /* Reference access                                                           */

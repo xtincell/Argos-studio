@@ -1,8 +1,14 @@
 # Argos
 
-> The world's largest qualified library of marketing campaigns.
+> Ambition : constituer une bibliothèque qualifiée de campagnes marketing.
 
 Argos est un répertoire éditorial de patterns créatifs gagnants, exploitable comme moteur de recherche public ou via API/MCP pour les systèmes IA.
+
+La bibliothèque et l’admission manuelle sont matérialisées ; l’accès MCP,
+l’authentification et la séparation des consultations privées restent à recevoir.
+L’[état de réception](docs/RECEPTION-INTEGRITE.md) distingue le code, ses tests
+et les parcours effectivement éprouvés. Les personas décrivent des responsabilités
+spécialisées ; leur présence ne prouve pas des agents actifs.
 
 ## Quick start
 

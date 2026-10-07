@@ -96,7 +96,6 @@ export function dbToReference(row: ReferenceRow): Reference {
       rationale: row.performanceRationale ?? undefined,
     },
     researcherName: row.researcherName ?? undefined,
-    researcherContact: row.researcherContact ?? undefined,
     researcherToolUsed: row.researcherToolUsed ?? undefined,
     researchDate: row.researchDate ?? undefined,
     ingestPath: row.ingestPath ?? undefined,
@@ -143,6 +142,7 @@ function dbToAxis(row: ReferenceRow['axes'][number]): StructuralAxis {
     value: row.value,
     confidence: row.confidence,
     evidence: row.evidence ?? undefined,
+    sourceUrl: row.sourceUrl ?? undefined,
   };
 }
 
@@ -175,6 +175,7 @@ function dbToMetric(row: ReferenceRow['metrics'][number]): PerformanceMetric {
     scopedAssetId: row.scopedAssetId ?? undefined,
     attribution: row.attribution as AttributionConfidence,
     source: row.source,
+    sourceUrl: row.sourceUrl ?? undefined,
     measuredAtYearMonth: row.measuredAtYearMonth ?? undefined,
   };
 }

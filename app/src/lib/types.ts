@@ -74,6 +74,7 @@ export interface StructuralAxis {
   value: string;
   confidence: number;
   evidence?: string;
+  sourceUrl?: string;
 }
 
 /**
@@ -300,6 +301,8 @@ export interface PerformanceMetric {
   attribution: AttributionConfidence;
   /** Source of the metric — case study, press release, experiment, etc. */
   source: string;
+  /** Exact cited dossier URL, when explicitly supplied by sourceIndex. */
+  sourceUrl?: string;
   /** When the metric was measured (YYYY-MM). */
   measuredAtYearMonth?: string;
 }
