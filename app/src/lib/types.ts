@@ -320,6 +320,13 @@ export interface PerformanceScore {
   rationale?: string;
 }
 
+/** Evidence identity stays stable when measurements are reordered. */
+export function metricEvidenceKey(metric: PerformanceMetric): string {
+  return JSON.stringify([metric.kind, metric.scope, metric.scopedAssetId ?? null,
+    metric.goal, metric.value, metric.displayValue ?? null, metric.source,
+    metric.sourceUrl ?? null, metric.measuredAtYearMonth ?? null, metric.attribution]);
+}
+
 export interface Reference {
   id: string;
   slug: string;

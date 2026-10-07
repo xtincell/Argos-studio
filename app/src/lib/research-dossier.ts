@@ -562,13 +562,6 @@ function normalizeMetricValue(m: PerformanceScore['metrics'][number]): number {
       return Math.min(100, m.value * 25);
     case 'IMITATION_COUNT':
       return Math.min(100, m.value * 5);
-    case 'UNITS_SOLD':
-    case 'REVENUE_USD':
-    case 'REACH_PERSONS':
-    case 'IMPRESSIONS':
-    case 'BRAND_SEARCH_LIFT_PCT':
-    case 'UGC_VOLUME':
-    case 'NPS_DELTA':
     default:
       return 60; // neutral mid-score for unmappable kinds
   }

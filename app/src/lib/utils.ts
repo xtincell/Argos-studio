@@ -6,10 +6,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+  // Preserve the historical U+0300–U+036F removal range, without rekeying IDs.
+  return Array.from(value.toLowerCase().normalize('NFD'))
+    .filter((character) => {
+      const point = character.charCodeAt(0);
+      return point < 0x0300 || point > 0x036f;
+    })
+    .join('')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }

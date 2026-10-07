@@ -390,7 +390,7 @@ function FeaturedAssetCard({
               textWrap: 'balance',
             }}
           >
-            « {asset.text.length > 140 ? asset.text.slice(0, 138) + '…' : asset.text} »
+            « {asset.text.length > 140 ? `${asset.text.slice(0, 138)}…` : asset.text} »
           </div>
         ) : (
           <div

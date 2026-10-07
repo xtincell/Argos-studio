@@ -115,7 +115,6 @@ function sortRefs(refs: Reference[], sort: string): Reference[] {
       return copy.sort((a, b) => b.performance.composite - a.performance.composite);
     case 'assets':
       return copy.sort((a, b) => b.assets.length - a.assets.length);
-    case 'recent':
     default:
       return copy.sort((a, b) => b.emissionYear - a.emissionYear);
   }

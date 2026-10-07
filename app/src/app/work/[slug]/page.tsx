@@ -3,12 +3,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { WorkViewTabs } from '@/components/work-view-tabs';
+import { JsonLd } from '@/components/json-ld';
 import { getAllReferences, getReferenceBySlug } from '@/lib/library';
 import {
   type Asset,
   type PerformanceMetric,
   type Reference,
   getHeroAsset,
+  metricEvidenceKey,
 } from '@/lib/types';
 
 interface WorkPageProps {
@@ -65,11 +67,7 @@ export default async function ReadView({ params }: WorkPageProps) {
 
   return (
     <section className="view" data-view="read">
-      <script
-        type="application/ld+json"
-        // Trusted source: composed from server-side validated dossier data.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className="wrap">
         <WorkViewTabs slug={slug} active="read" />
         <DossierGrid reference={reference} hero={hero} sidebarMetrics={sidebarMetrics} />
@@ -225,7 +223,7 @@ function DossierGrid({
           const tone = (['butter', '', 'dark'] as const)[i] ?? '';
           const color = (['#3a8e5c', 'var(--coral)', '#fff'] as const)[i] ?? 'inherit';
           return (
-            <div key={`${m.kind}-${i}`} className={`ss ${tone}`.trim()}>
+            <div key={metricEvidenceKey(m)} className={`ss ${tone}`.trim()}>
               <div className="k">{humanMetricLabel(m.kind)}</div>
               <div className="v" style={{ color }}>
                 {m.displayValue ?? formatMetricValue(m)}

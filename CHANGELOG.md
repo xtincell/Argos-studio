@@ -1,5 +1,15 @@
 # Changelog Argos
 
+## App 0.1.2 — 2026-10-07
+
+- Aperçus en dialogue natif, recherche/séparateur sémantiques, score accessible
+  au clavier et clés stables pour les preuves affichées.
+- JSON-LD sans interprétation HTML du texte d'un dossier importé ; recette SSR
+  conserve le JSON original et refuse l'injection d'un deuxième script.
+- Compteur de recherche non mesuré et forme d'onde décorative retirés.
+- Passif lint corrigé sans règle désactivée ni périmètre réduit. Réception native,
+  authentification, isolation et revue avant release toujours ouvertes.
+
 ## Workers 0.1.1 — 2026-10-07
 
 - Refuse les options inconnues avant le choix du mode et la substitution de

@@ -206,7 +206,7 @@ async function main() {
     prisma.researchSource.count(),
     prisma.filiation.count(),
   ]);
-  console.log(`\n═══ Seed complete ═══`);
+  console.log('\n═══ Seed complete ═══');
   console.log(`  references:       ${counts[0]}`);
   console.log(`  assets:           ${counts[1]}`);
   console.log(`  structural axes:  ${counts[2]}`);

@@ -211,17 +211,6 @@ function AudioPanel({ asset, className }: { asset: Asset; className?: string }) 
             </p>
           )}
         </div>
-        <div className="mt-3 flex h-16 items-center gap-0.5" aria-hidden>
-          {Array.from({ length: 48 }).map((_, i) => (
-            <span
-              key={i}
-              className="flex-1 rounded-full bg-accent/40"
-              style={{
-                height: `${20 + Math.abs(Math.sin(i * 0.7)) * 70}%`,
-              }}
-            />
-          ))}
-        </div>
         <div className="mt-4">
           <MediaPlayer asset={asset} />
         </div>

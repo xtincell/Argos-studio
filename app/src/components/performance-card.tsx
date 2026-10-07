@@ -12,6 +12,7 @@ import type {
   Reference,
 } from '@/lib/types';
 import { cn, formatCompact } from '@/lib/utils';
+import { metricEvidenceKey } from '@/lib/types';
 
 interface PerformanceCardProps {
   reference: Reference;
@@ -104,8 +105,8 @@ function MetricGroup({
         </p>
       ) : (
         <ul className="mt-4 space-y-4">
-          {metrics.map((m, i) => (
-            <li key={`${m.kind}-${i}`}>
+          {metrics.map((m) => (
+            <li key={metricEvidenceKey(m)}>
               <MetricRow
                 metric={m}
                 referenceAsset={
@@ -198,6 +199,8 @@ function ScoreBar({ value, className }: { value: number; className?: string }) {
   return (
     <div
       role="progressbar"
+      tabIndex={0}
+      aria-label="Composite score"
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={100}

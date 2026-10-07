@@ -36,6 +36,16 @@ Conditions encore ouvertes avant release :
 - Recevoir la projection Fusée vers le studio, la lecture canonique et le retour
   des résultats. PASS local n’est pas un reçu de publication distante.
 - Fermer le lint complet : passif de 28 erreurs au commit initial, 26 après ce
-  lot, aucune erreur ajoutée. Ne pas réduire le scan ni affaiblir une règle.
+  lot. Une correction suivante le ferme localement sans réduire le scan ni
+  affaiblir une règle ; revue et CI du lot intégré restent nécessaires.
+
+Réception locale 0.1.2 : quatorze tests, dont rendu SSR d'un texte de dossier
+contenant un terminateur de script. Le JSON-LD reste un seul script de données,
+sans élément injecté, et retrouve le contenu original à la lecture JSON.
+Les aperçus utilisent le dialogue natif, les recherches et séparateurs leur
+sémantique HTML, les mesures des clés stables par preuve. Le faux compteur
+de recherche et la forme d'onde décorative sont retirés. Typecheck, build sur
+base vide et lint complet passent localement ; CI du commit à recevoir.
+Hydratation, focus, clavier et mobile restent non reçus par une recette SSR.
 
 La correction ne vaut pas réception intégrale des quatre parcours Argos.

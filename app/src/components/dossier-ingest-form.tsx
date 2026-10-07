@@ -269,8 +269,8 @@ function ValidationDisplay({
           {validation.errors.length > 1 ? 's' : ''})
         </h3>
         <ul className="mt-3 space-y-1 font-mono text-xs">
-          {validation.errors.slice(0, 8).map((e, i) => (
-            <li key={i} className="flex gap-2">
+          {validation.errors.slice(0, 8).map((e) => (
+            <li key={JSON.stringify([e.path, e.message])} className="flex gap-2">
               <span className="shrink-0 text-destructive">×</span>
               <span className="text-muted-foreground">
                 <code className="text-foreground">{e.path}</code> — {e.message}
@@ -330,8 +330,8 @@ function AuditDisplay({ audit }: { audit: TransformResult['audit'] }) {
         <Row label="Sources citées">{audit.sourcesCount}</Row>
       </dl>
       <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-        {audit.notes.map((n, i) => (
-          <li key={i}>• {n}</li>
+        {Array.from(new Set(audit.notes)).map((n) => (
+          <li key={n}>• {n}</li>
         ))}
       </ul>
     </div>

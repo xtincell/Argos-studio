@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getAllReferences, getAssetById, getAssetsByFunction } from '@/lib/library';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import type { Asset, AssetFunction, Reference } from '@/lib/types';
+import { metricEvidenceKey } from '@/lib/types';
 
 interface AssetPageProps {
   params: Promise<{ id: string }>;
@@ -303,8 +304,8 @@ export default async function AssetPage({ params }: AssetPageProps) {
             {scopedMetrics.length > 0 && (
               <MetaSection title="Métriques de cet asset">
                 <div style={{ display: 'grid', gap: 4 }}>
-                  {scopedMetrics.map((m, i) => (
-                    <div key={i} style={{ fontSize: 12, color: 'var(--ink-2)' }}>
+                  {scopedMetrics.map((m) => (
+                    <div key={metricEvidenceKey(m)} style={{ fontSize: 12, color: 'var(--ink-2)' }}>
                       <b>{m.displayValue ?? `${m.value}`}</b> · {m.kind}
                     </div>
                   ))}
