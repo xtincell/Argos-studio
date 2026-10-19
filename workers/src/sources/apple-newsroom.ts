@@ -10,6 +10,7 @@
 import * as cheerio from 'cheerio';
 import { fetchUrl } from '../lib/fetcher.js';
 import { logger } from '../lib/logger.js';
+import { SourceCollectionFailure } from '../lib/collect.js';
 import type {
   RawSignal,
   SourceCrawlConfig,
@@ -34,7 +35,7 @@ export const appleNewsroomCrawler: SourceCrawler = {
     if (config.useFixtures) {
       return crawlFromFixtures(config);
     }
-    return crawlLive(config);
+    return crawlNewsroomLive(config);
   },
 };
 
@@ -54,12 +55,12 @@ async function crawlFromFixtures(_config: SourceCrawlConfig): Promise<RawSignal[
   return signals;
 }
 
-async function crawlLive(config: SourceCrawlConfig): Promise<RawSignal[]> {
+export async function crawlNewsroomLive(config: SourceCrawlConfig, fetcher = fetchUrl): Promise<RawSignal[]> {
   log.info({ url: INDEX_URL }, 'fetching newsroom index');
-  const index = await fetchUrl(INDEX_URL, { useFixtures: false });
+  const index = await fetcher(INDEX_URL, { useFixtures: false });
   if (index.status >= 400) {
     log.error({ status: index.status }, 'index fetch failed');
-    return [];
+    throw new SourceCollectionFailure();
   }
 
   const $ = cheerio.load(index.body);
@@ -83,20 +84,24 @@ async function crawlLive(config: SourceCrawlConfig): Promise<RawSignal[]> {
   log.info({ urlsFound: urls.length }, 'discovered article URLs');
 
   const signals: RawSignal[] = [];
+  let failedArticles = 0;
   for (const url of urls) {
     try {
-      const res = await fetchUrl(url, { useFixtures: false });
+      const res = await fetcher(url, { useFixtures: false });
       if (res.status >= 400) {
         log.warn({ url, status: res.status }, 'article fetch failed, skipping');
+        failedArticles++;
         continue;
       }
       signals.push(buildSignalFromHtml(res.body, url, slugFromUrl(url)));
-    } catch (err) {
-      log.error({ url, err }, 'article fetch threw, skipping');
+    } catch {
+      failedArticles++;
+      log.error({ url }, 'article fetch threw, skipping');
     }
   }
 
   log.info({ signalsEmitted: signals.length }, 'live crawl complete');
+  if (failedArticles) throw new SourceCollectionFailure(signals);
   return signals;
 }
 

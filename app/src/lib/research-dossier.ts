@@ -1,3 +1,4 @@
+import { slugify } from './utils';
 // ResearchDossier — the JSON contract for manual ingestion.
 //
 // A researcher (human + Claude artifact + their own toolkit) builds this object
@@ -16,7 +17,6 @@ import { z } from 'zod';
 import type {
   Asset,
   AssetExtractionMethod,
-  ConfidenceLevel,
   PerformanceScore,
   Reference,
   StructuralAxis,
@@ -139,7 +139,7 @@ export const ResearchFiliationSchema = z.object({
 /* -------------------------------------------------------------------------- */
 
 export const ResearchSourceSchema = z.object({
-  url: z.string().url(),
+  url: z.string().url().refine(value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password; } catch { return false; } }, 'Une URL HTTP(S) sans identifiants est requise.'),
   title: z.string().min(1),
   publisher: z.string().optional(),
   /** YYYY-MM-DD */
@@ -298,6 +298,15 @@ export const ResearchDossierSchema = z
       }
     }
     // Exactly one HERO asset
+    for (const [i, metric] of dossier.performance.metrics.entries()) {
+      if (metric.sourceIndex !== undefined && metric.sourceIndex >= dossier.sources.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['performance', 'metrics', i, 'sourceIndex'],
+          message: 'sourceIndex is outside this dossier',
+        });
+      }
+    }
     const heroes = dossier.assets.filter((a) => a.role === 'HERO');
     if (heroes.length !== 1) {
       ctx.addIssue({
@@ -308,6 +317,13 @@ export const ResearchDossierSchema = z
     }
     // TEXT-kind assets must have text, non-TEXT must not rely on text alone
     for (const [i, asset] of dossier.assets.entries()) {
+      if (asset.sourceLicense === 'unknown') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['assets', i, 'sourceLicense'],
+          message: 'Asset license is unresolved. Resolve it before publication.',
+        });
+      }
       if (asset.kind === 'TEXT' && (!asset.text || asset.text.trim().length === 0)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -350,7 +366,7 @@ export interface TransformResult {
   audit: {
     generatedSlug: string;
     generatedAssetIds: string[];
-    compositeScoreSource: 'provided-by-researcher' | 'computed-from-metrics';
+    compositeScoreSource: 'provided-by-researcher' | 'computed-from-metrics' | 'not-measured';
     sourcesCount: number;
     notes: string[];
   };
@@ -381,6 +397,8 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
       durationSec: a.durationSec,
       format: a.format,
       extractionMethod,
+      sourceUrl: a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.url,
+      sourceLicense: a.sourceLicense ?? (a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.license),
     };
   });
 
@@ -390,6 +408,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
     value: a.value,
     confidence: a.confidence,
     evidence: a.evidence,
+    sourceUrl: a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.url,
   }));
 
   const reference: Reference = {
@@ -416,6 +435,11 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
     summary: dossier.summary,
     patternObservation: dossier.patternObservation,
     significance: dossier.significance,
+    researcherName: dossier.researcher.name,
+    researcherToolUsed: dossier.researcher.toolUsed,
+    researchDate: dossier.researchDate,
+    ingestPath: 'manual-dossier',
+    researchSources: dossier.sources.map((source) => ({ ...source })),
   };
 
   return {
@@ -426,7 +450,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
       compositeScoreSource:
         dossier.performance.composite !== undefined
           ? 'provided-by-researcher'
-          : 'computed-from-metrics',
+          : performance.composite === null ? 'not-measured' : 'computed-from-metrics',
       sourcesCount: dossier.sources.length,
       notes: [
         `${dossier.assets.length} assets in bundle`,
@@ -441,13 +465,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
 
 function generateSlug(dossier: ResearchDossier): string {
   const base = `${dossier.operation.brandEmitter}-${dossier.operation.title}-${dossier.operation.emissionYear}`;
-  return base
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
+  return slugify(base).slice(0, 80);
 }
 
 function buildPerformanceScore(
@@ -467,6 +485,7 @@ function buildPerformanceScore(
         : undefined,
     attribution: m.attribution,
     source: m.source,
+    sourceUrl: m.sourceIndex === undefined ? undefined : dossier.sources[m.sourceIndex]?.url,
     measuredAtYearMonth: m.measuredAtYearMonth,
   }));
 
@@ -474,7 +493,7 @@ function buildPerformanceScore(
   const composite =
     dossier.performance.composite !== undefined
       ? dossier.performance.composite
-      : computeComposite(metrics, dossier.confidence);
+      : computeComposite(metrics);
 
   // Primary goals : researcher-provided or fall back to all classification.operationGoals
   const primaryGoals =
@@ -488,6 +507,8 @@ function buildPerformanceScore(
 
   return {
     composite,
+    compositeSource: dossier.performance.composite !== undefined
+      ? 'provided-by-researcher' : composite === null ? 'not-measured' : 'computed-from-metrics',
     primaryGoals,
     metrics,
     overallAttribution,
@@ -495,19 +516,10 @@ function buildPerformanceScore(
   };
 }
 
-function computeComposite(
-  metrics: PerformanceScore['metrics'],
-  declaredConfidence: ConfidenceLevel,
-): number {
+function computeComposite(metrics: PerformanceScore['metrics']): number | null {
   // Very rough composite: weight by attribution strength, clamp 0-100
   if (metrics.length === 0) {
-    const fallback: Record<ConfidenceLevel, number> = {
-      HIGH: 70,
-      MEDIUM: 55,
-      LOW: 40,
-      ESTIMATED: 30,
-    };
-    return fallback[declaredConfidence];
+    return null;
   }
 
   // Normalize each metric to a 0-100 score (very heuristic — production will use a proper model)
@@ -544,13 +556,6 @@ function normalizeMetricValue(m: PerformanceScore['metrics'][number]): number {
       return Math.min(100, m.value * 25);
     case 'IMITATION_COUNT':
       return Math.min(100, m.value * 5);
-    case 'UNITS_SOLD':
-    case 'REVENUE_USD':
-    case 'REACH_PERSONS':
-    case 'IMPRESSIONS':
-    case 'BRAND_SEARCH_LIFT_PCT':
-    case 'UGC_VOLUME':
-    case 'NPS_DELTA':
     default:
       return 60; // neutral mid-score for unmappable kinds
   }

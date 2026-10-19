@@ -35,14 +35,9 @@ const pendingFiliations: PendingFiliation[] = [];
 async function main() {
   console.log('═══ Argos DB seed ═══\n');
 
-  // Wipe existing rows for idempotency
-  const existing = await prisma.reference.findMany({ select: { id: true } });
-  if (existing.length > 0) {
-    console.log(`Cleaning ${existing.length} existing references (cascade)...`);
-    await prisma.reference.deleteMany({});
-  }
-
-  const seededSlugs = new Set<string>();
+  // The corpus is a bootstrap, not a restore: preserve operator work and annotations.
+  const existing = await prisma.reference.findMany({ select: { slug: true } });
+  const seededSlugs = new Set(existing.map((reference) => reference.slug));
 
   // 1) Real research dossiers (the authoritative source)
   console.log('\nLoading real research dossiers from public/dossier-*.json …');
@@ -62,6 +57,10 @@ async function main() {
         continue;
       }
       const { reference } = dossierToReference(parsed.data);
+      if (seededSlugs.has(reference.slug)) {
+        console.log(`  Preserved existing reference: ${reference.slug}`);
+        continue;
+      }
       await upsertReference(reference, {
         ingestPath: 'manual-dossier',
         researcherName: parsed.data.researcher.name,
@@ -207,7 +206,7 @@ async function main() {
     prisma.researchSource.count(),
     prisma.filiation.count(),
   ]);
-  console.log(`\n═══ Seed complete ═══`);
+  console.log('\n═══ Seed complete ═══');
   console.log(`  references:       ${counts[0]}`);
   console.log(`  assets:           ${counts[1]}`);
   console.log(`  structural axes:  ${counts[2]}`);
@@ -257,7 +256,8 @@ async function upsertReference(ref: Reference, extras: UpsertExtras) {
     summary: ref.summary,
     patternObservation: ref.patternObservation,
     significance: ref.significance,
-    performanceComposite: Math.round(ref.performance.composite),
+    performanceComposite: ref.performance.composite === null ? null : Math.round(ref.performance.composite),
+    performanceCompositeSource: ref.performance.compositeSource,
     performancePrimaryGoalsJson: JSON.stringify(ref.performance.primaryGoals),
     performanceOverallAttribution: ref.performance.overallAttribution,
     performanceRationale: ref.performance.rationale,

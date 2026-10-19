@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bookmark, Download, Share2 } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { AssetGallery } from './asset-gallery';
 import { AssetLayout } from './asset-layout';
@@ -6,7 +6,7 @@ import { AxisDisplay } from './axis-display';
 import { ConfidenceIndicator } from './confidence-indicator';
 import { PerformanceCard } from './performance-card';
 import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { ReferenceActions } from './reference-actions';
 import { Container } from './ui/container';
 import { Separator } from './ui/separator';
 import { VictoryBadge } from './victory-badge';
@@ -48,20 +48,7 @@ export function ReferenceDetailView({ reference }: ReferenceDetailViewProps) {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Button variant="outline" size="sm">
-              <Bookmark className="h-4 w-4" />
-              Save
-            </Button>
-            <Button variant="outline" size="sm">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4" />
-              Export PDF
-            </Button>
-          </div>
+          <ReferenceActions reference={reference} />
         </header>
 
         {hero && (

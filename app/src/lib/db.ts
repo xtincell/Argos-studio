@@ -67,6 +67,8 @@ type ReferenceRow = Prisma.ReferenceGetPayload<{
 export function dbToReference(row: ReferenceRow): Reference {
   return {
     id: row.id,
+    updatedAt: row.updatedAt.toISOString(),
+    hasSourceDossier: row.sourceDossierJson !== null,
     slug: row.slug,
     title: row.title,
     brandEmitter: row.brandEmitter,
@@ -90,13 +92,13 @@ export function dbToReference(row: ReferenceRow): Reference {
     assets: row.assets.map(dbToAsset),
     performance: {
       composite: row.performanceComposite,
+      compositeSource: row.performanceCompositeSource as NonNullable<Reference["performance"]["compositeSource"]>,
       primaryGoals: parseJsonArray<OperationGoal>(row.performancePrimaryGoalsJson),
       metrics: row.metrics.map(dbToMetric),
       overallAttribution: row.performanceOverallAttribution as AttributionConfidence,
       rationale: row.performanceRationale ?? undefined,
     },
     researcherName: row.researcherName ?? undefined,
-    researcherContact: row.researcherContact ?? undefined,
     researcherToolUsed: row.researcherToolUsed ?? undefined,
     researchDate: row.researchDate ?? undefined,
     ingestPath: row.ingestPath ?? undefined,
@@ -143,6 +145,7 @@ function dbToAxis(row: ReferenceRow['axes'][number]): StructuralAxis {
     value: row.value,
     confidence: row.confidence,
     evidence: row.evidence ?? undefined,
+    sourceUrl: row.sourceUrl ?? undefined,
   };
 }
 
@@ -160,6 +163,8 @@ function dbToAsset(row: ReferenceRow['assets'][number]): Asset {
     alt: row.alt ?? undefined,
     durationSec: row.durationSec ?? undefined,
     format: row.format ?? undefined,
+    sourceUrl: row.sourceUrl ?? undefined,
+    sourceLicense: row.sourceLicense ?? undefined,
     extractionMethod: (row.extractionMethod ?? undefined) as AssetExtractionMethod | undefined,
     derivedFromAssetId: row.derivedFromAssetId ?? undefined,
   };
@@ -175,6 +180,7 @@ function dbToMetric(row: ReferenceRow['metrics'][number]): PerformanceMetric {
     scopedAssetId: row.scopedAssetId ?? undefined,
     attribution: row.attribution as AttributionConfidence,
     source: row.source,
+    sourceUrl: row.sourceUrl ?? undefined,
     measuredAtYearMonth: row.measuredAtYearMonth ?? undefined,
   };
 }

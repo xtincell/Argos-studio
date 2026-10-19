@@ -45,6 +45,8 @@ async function main(): Promise<void> {
   console.log(`  Duration:            ${result.runDurationMs}ms`);
   console.log(`  Sources queried:     ${result.sourcesQueried.length}`);
   result.sourcesQueried.forEach((s) => console.log(`    • ${s}`));
+  console.log('  Source receipts (NO_SIGNAL does not prove complete coverage):');
+  result.sourceReceipts.forEach((s) => console.log(`    • ${s.source}: ${s.status} (${s.signalCount})`));
   console.log(`  Signals collected:   ${result.signalsCollected}`);
   console.log(`  Operations:          ${result.operationsIdentified}`);
   console.log(`  Assets extracted:    ${result.assetsExtracted}`);
@@ -82,16 +84,10 @@ async function main(): Promise<void> {
 function parseArgs(argv: string[]): Record<string, boolean | number | string> {
   const out: Record<string, boolean | number | string> = {};
   for (const arg of argv) {
-    if (arg.startsWith('--')) {
-      const [k, v] = arg.split('=');
-      if (k === undefined) continue;
-      if (v === undefined) {
-        out[k] = true;
-      } else {
-        const n = Number(v);
-        out[k] = Number.isFinite(n) ? n : v;
-      }
-    }
+    if (arg === '--dry-run') out['--dry-run'] = true;
+    else if (/^--limit=[1-9]\d*$/.test(arg) && Number.isSafeInteger(Number(arg.slice(8))))
+      out['--limit'] = Number(arg.slice(8));
+    else throw new Error(`Unknown option: ${arg}. Use --dry-run and/or --limit=<positive integer>.`);
   }
   return out;
 }

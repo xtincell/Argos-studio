@@ -10,20 +10,7 @@ import {
   PILLAR_LABELS,
   STRUCTURAL_AXIS_LABELS,
 } from '@/lib/taxonomy';
-import {
-  getReferencesByAssetFunction,
-  getReferencesByAxis,
-  getReferencesByManipulationMode,
-  getReferencesByOperationGoal,
-  getReferencesByPatternKind,
-  getReferencesByPillar,
-  listAssetFunctions,
-  listManipulationModes,
-  listOperationGoals,
-  listPatternKinds,
-  listStructuralAxes,
-  slugify,
-} from '@/lib/library';
+import { getReferencesByAssetFunction, getReferencesByAxis, getReferencesByManipulationMode, getReferencesByOperationGoal, getReferencesByPatternKind, getReferencesByPillar, slugify } from '@/lib/library';
 import type {
   AssetFunction,
   ManipulationMode,
@@ -33,6 +20,9 @@ import type {
   Reference,
   StructuralAxisName,
 } from '@/lib/types';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface ByPageProps {
   params: Promise<{ dimension: string; value: string }>;
@@ -57,26 +47,6 @@ const DIM_LABEL: Record<Dim, string> = {
   'operation-goal': 'Objectif d\'opération',
   pillar: 'Pilier',
 };
-
-export async function generateStaticParams() {
-  const [modes, axes, kinds, fns, goals] = await Promise.all([
-    listManipulationModes(),
-    listStructuralAxes(),
-    listPatternKinds(),
-    listAssetFunctions(),
-    listOperationGoals(),
-  ]);
-  const params: { dimension: string; value: string }[] = [];
-  for (const m of modes) params.push({ dimension: 'manipulation-mode', value: m.slug });
-  for (const a of axes) params.push({ dimension: 'axis', value: a.slug });
-  for (const k of kinds) params.push({ dimension: 'pattern-kind', value: k.slug });
-  for (const f of fns) params.push({ dimension: 'asset-function', value: f.slug });
-  for (const g of goals) params.push({ dimension: 'operation-goal', value: g.slug });
-  for (const p of ['a', 'd', 'v', 'e', 'r', 't', 'i', 's']) {
-    params.push({ dimension: 'pillar', value: p });
-  }
-  return params;
-}
 
 export async function generateMetadata({ params }: ByPageProps): Promise<Metadata> {
   const { dimension, value } = await params;

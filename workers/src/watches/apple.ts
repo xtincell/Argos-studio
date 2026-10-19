@@ -24,6 +24,7 @@ import type {
 import { parseSignal } from '../lib/parser.js';
 import { bundleSignals } from '../lib/bundle.js';
 import { getExtractor } from '../lib/llm.js';
+import { collectSources } from '../lib/collect.js';
 
 const log = logger.child({ component: 'watch:apple' });
 
@@ -51,30 +52,22 @@ export const appleBrandWatch: BrandWatchAgent = {
     log.info({ useFixtures, limit }, 'Apple brand watch starting');
 
     // STEP 1 — orchestrate Layer 1 source crawlers in parallel
-    const [newsroomSignals, cannesSignals] = await Promise.all([
-      appleNewsroomCrawler.crawl({ useFixtures, limit }),
-      cannesLionsCrawler.crawl({ useFixtures, brandFilter: 'apple', limit }),
-    ]);
+    const collection = await collectSources([
+      { ...appleNewsroomCrawler, crawl: () => appleNewsroomCrawler.crawl({ useFixtures, limit }) },
+      { ...cannesLionsCrawler, crawl: () => cannesLionsCrawler.crawl({ useFixtures, brandFilter: 'apple', limit }) },
+      { name: 'cultural-signal-stub', perimeter: 'CULTURAL_SIGNAL', crawl: () => stubCulturalSignals(useFixtures) },
+      { name: 'performance-data-stub', perimeter: 'PERFORMANCE_DATA', crawl: () => stubPerformanceSignals(useFixtures) },
+      { name: 'independent-analysis-stub', perimeter: 'INDEPENDENT_ANALYSIS', crawl: () => stubIndependentAnalysis(useFixtures) },
+    ], useFixtures);
 
     // STEP 2 — filter / hint signals for Apple
-    const filteredL1: RawSignal[] = [...newsroomSignals, ...cannesSignals].filter((s) => {
+    const allSignals: RawSignal[] = collection.signals.filter((s) => {
       const brandHint = s.brandHint?.toLowerCase() ?? '';
       // Layer 1 crawlers are already brand-scoped for apple-newsroom; cannes filters by brandFilter.
       // The filter here is a safety net for future generic L1 crawlers (AdAge, LBB, etc.).
       return brandHint === 'apple' || s.sourceName === 'apple-newsroom';
     });
 
-    // STEP 3 — query Layer-1-not-covered perimeters
-    const culturalSignals = await stubCulturalSignals(useFixtures);
-    const performanceSignals = await stubPerformanceSignals(useFixtures);
-    const independentSignals = await stubIndependentAnalysis(useFixtures);
-
-    const allSignals: RawSignal[] = [
-      ...filteredL1,
-      ...culturalSignals,
-      ...performanceSignals,
-      ...independentSignals,
-    ];
     log.info({ totalSignals: allSignals.length }, 'collected raw signals');
 
     // STEP 4 — parse each signal via the LLM (or fixture extractor)
@@ -101,13 +94,8 @@ export const appleBrandWatch: BrandWatchAgent = {
       runStartedAt: startedAt.toISOString(),
       runDurationMs: Date.now() - startedAt.getTime(),
       mode: useFixtures ? 'dry-run' : 'live',
-      sourcesQueried: [
-        'apple-newsroom',
-        'cannes-lions',
-        'cultural-signal-stub',
-        'performance-data-stub',
-        'independent-analysis-stub',
-      ],
+      sourcesQueried: collection.receipts.filter((receipt) => receipt.status !== 'UNAVAILABLE').map((receipt) => receipt.source),
+      sourceReceipts: collection.receipts,
       signalsCollected: allSignals.length,
       operationsIdentified: bundled.operations.length,
       assetsExtracted: bundled.operations.reduce((sum, op) => sum + op.assets.length, 0),
@@ -136,8 +124,7 @@ async function stubCulturalSignals(useFixtures: boolean): Promise<RawSignal[]> {
   // PROD: would call a Reddit / Twitter / TikTok meme search API filtered by 'apple'
   // and detect parodies, citations, mass-market memes.
   if (!useFixtures) {
-    log.debug('cultural signal stub returning empty in live mode (not implemented)');
-    return [];
+    throw new Error('SOURCE_UNAVAILABLE: Cultural source is not implemented.');
   }
   return [
     {
@@ -160,7 +147,7 @@ async function stubCulturalSignals(useFixtures: boolean): Promise<RawSignal[]> {
 
 async function stubPerformanceSignals(useFixtures: boolean): Promise<RawSignal[]> {
   // PROD: would query Apple investor relations + Google Trends + Brandwatch.
-  if (!useFixtures) return [];
+  if (!useFixtures) throw new Error('SOURCE_UNAVAILABLE: Performance source is not implemented.');
   return [
     {
       id: 'sig_perf_apple_market-cap-trajectory',
@@ -181,7 +168,7 @@ async function stubPerformanceSignals(useFixtures: boolean): Promise<RawSignal[]
 
 async function stubIndependentAnalysis(useFixtures: boolean): Promise<RawSignal[]> {
   // PROD: would scan podcast transcripts, academic papers, YouTube case study videos.
-  if (!useFixtures) return [];
+  if (!useFixtures) throw new Error('SOURCE_UNAVAILABLE: Independent analysis source is not implemented.');
   return [
     {
       id: 'sig_indep_apple_think-different-academic',

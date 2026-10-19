@@ -170,7 +170,7 @@ function ReferenceResultRow({ reference: r }: { reference: Reference }) {
         <p className="sum">{r.summary}</p>
       </div>
       <div className="meta">
-        <div className="sc">{r.performance.composite}</div>
+        <div className="sc">{r.performance.composite ?? "—"}</div>
         <div className="sc-lab">Score</div>
         {r.victoryTypes[0] && (
           <div className="victory">

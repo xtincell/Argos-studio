@@ -1,0 +1,64 @@
+name: Argos CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  workers:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+        env:
+          ANTHROPIC_API_KEY: ''
+          DOTENV_CONFIG_PATH: /dev/null
+  integrity:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: file:/tmp/argos-ci-build.db
+      NEXT_TELEMETRY_DISABLED: 1
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: node -e "require('node:fs').writeFileSync('/tmp/argos-ci-build.db', '')"
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - run: node tests/production-flow.mjs

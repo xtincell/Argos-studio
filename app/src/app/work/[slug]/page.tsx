@@ -2,21 +2,23 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ReferenceActions } from '@/components/reference-actions';
 import { WorkViewTabs } from '@/components/work-view-tabs';
-import { getAllReferences, getReferenceBySlug } from '@/lib/library';
+import { JsonLd } from '@/components/json-ld';
+import { getReferenceBySlug } from '@/lib/library';
 import {
   type Asset,
   type PerformanceMetric,
   type Reference,
   getHeroAsset,
+  metricEvidenceKey,
 } from '@/lib/types';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface WorkPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await getAllReferences()).map((r) => ({ slug: r.slug }));
 }
 
 export async function generateMetadata({ params }: WorkPageProps): Promise<Metadata> {
@@ -65,13 +67,10 @@ export default async function ReadView({ params }: WorkPageProps) {
 
   return (
     <section className="view" data-view="read">
-      <script
-        type="application/ld+json"
-        // Trusted source: composed from server-side validated dossier data.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className="wrap">
         <WorkViewTabs slug={slug} active="read" />
+        <ReferenceActions reference={reference} />
         <DossierGrid reference={reference} hero={hero} sidebarMetrics={sidebarMetrics} />
         <DossierBody reference={reference} />
         <DossierEssay reference={reference} />
@@ -205,17 +204,17 @@ function DossierGrid({
               textTransform: 'uppercase',
             }}
           >
-            Dossier vérifié {reference.researchDate}
+            Dossier documenté {reference.researchDate}
           </div>
         )}
       </div>
 
       <div className="doss-side">
         <div className="ss coral">
-          <div className="k">Score d'imitabilité</div>
+          <div className="k">Score composite</div>
           <div className="v">
-            {reference.performance.composite}
-            <span className="u"> / 100</span>
+            {reference.performance.composite ?? "—"}
+            {reference.performance.composite !== null && <span className="u"> / 100</span>}
           </div>
           <div className="sub">
             Attribution <b>{humanAttribution(reference.performance.overallAttribution)}</b>
@@ -225,7 +224,7 @@ function DossierGrid({
           const tone = (['butter', '', 'dark'] as const)[i] ?? '';
           const color = (['#3a8e5c', 'var(--coral)', '#fff'] as const)[i] ?? 'inherit';
           return (
-            <div key={`${m.kind}-${i}`} className={`ss ${tone}`.trim()}>
+            <div key={metricEvidenceKey(m)} className={`ss ${tone}`.trim()}>
               <div className="k">{humanMetricLabel(m.kind)}</div>
               <div className="v" style={{ color }}>
                 {m.displayValue ?? formatMetricValue(m)}
@@ -252,21 +251,20 @@ function DossierBody({ reference }: { reference: Reference }) {
           <div className="act-h">
             <span className="n">ACTE 01</span>
             <h3>
-              Le <span className="serif">pari</span>
+              L’observation du <span className="serif">pattern</span>
             </h3>
           </div>
           <p>
             {reference.patternObservation ??
-              `${reference.brandEmitter} a fait un pari à contre-courant de chaque réflexe de la catégorie : retirer la marque du centre du récit. Le choix de confier le brief à ${reference.agencyCreator ?? 'leur agence'} relève de la même logique d'effacement.`}
-            <sup>1</sup>
+              "Observation de pattern non renseignée dans ce dossier."}
           </p>
           <div className="callout">
             <div className="ic">✦</div>
             <div className="ct">
-              <div className="k">La décision qui a tout joué</div>
+              <div className="k">Axe éditorial documenté</div>
               <div className="v">
                 {axes[0]?.value ??
-                  'Sortir la marque du centre. Laisser le client parler en premier. Faire de la marque le verbe, jamais le sujet.'}
+                  'Aucun axe documenté.'}
               </div>
             </div>
           </div>
@@ -276,31 +274,25 @@ function DossierBody({ reference }: { reference: Reference }) {
           <div className="act-h">
             <span className="n">ACTE 02</span>
             <h3>
-              L'<span className="serif">exécution</span>
+              Les actifs <span className="serif">documentés</span>
             </h3>
           </div>
           <p>
-            {axes[1]?.evidence ??
-              "Production menée en sprints courts et délibérés. Casting non-professionnel, codes culturels natifs, lieux réels. Le mix média inverse la norme de la catégorie."}
-            <sup>2</sup>
+            {reference.assets.length} actifs sont conservés dans ce dossier. Leur contenu et leur rôle sont consultables dans le bundle ci-dessous.
           </p>
-          <div className="pull">
-            {axes[2]?.value ??
-              "On ne vend rien. On documente un basculement déjà en cours — la marque arrive après, comme l'état civil arrive après la naissance."}
-          </div>
+
         </div>
 
         <div className="act">
           <div className="act-h">
             <span className="n">ACTE 03</span>
             <h3>
-              Ce qui s'est <span className="serif">vraiment</span> passé
+              Mesures et <span className="serif">attribution</span>
             </h3>
           </div>
           <p>
             {reference.performance.rationale ??
-              `Performance solide sur toute la ligne. C'est le différentiel contre contrôle qui qualifie l'attribution de causale prouvée.`}
-            <sup>3</sup>
+              (reference.performance.metrics.length ? `${reference.performance.metrics.length} mesures sont citées dans le dossier ; leur attribution reste celle de chaque source.` : 'Aucune mesure de performance renseignée.')}
           </p>
         </div>
 
@@ -308,12 +300,12 @@ function DossierBody({ reference }: { reference: Reference }) {
           <div className="act-h">
             <span className="n">ACTE 04</span>
             <h3>
-              Ce qu'il faut <span className="serif">retenir</span>
+              Portée de <span className="serif">l’analyse</span>
             </h3>
           </div>
           <p>
             {reference.significance ??
-              "Trois leçons transférables. Un — la posture choisie paye commercialement, mais seulement si la discipline est totale. Deux — ancrer dans un média, prouver dans un autre. Trois — l'auctorialité protège l'opération de l'exotisme."}
+              "Portée et enseignements non renseignés dans ce dossier."}
           </p>
         </div>
       </article>
@@ -736,7 +728,7 @@ function DossierSources({ reference }: { reference: Reference }) {
             marginBottom: 8,
           }}
         >
-          Sources · {sources.length} référence{sources.length > 1 ? 's' : ''} vérifiée{sources.length > 1 ? 's' : ''}
+          Sources · {sources.length} référence{sources.length > 1 ? 's' : ''} documentée{sources.length > 1 ? 's' : ''}
         </p>
         <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '-0.015em', fontWeight: 600 }}>
           D'où vient <span className="serif">cette analyse.</span>

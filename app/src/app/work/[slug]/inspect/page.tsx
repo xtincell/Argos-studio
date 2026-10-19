@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type React from 'react';
 import { notFound } from 'next/navigation';
 import { WorkViewTabs } from '@/components/work-view-tabs';
-import { getAllReferences, getReferenceBySlug } from '@/lib/library';
+import { getReferenceBySlug } from '@/lib/library';
 import {
   type Asset,
   type AttributionConfidence,
@@ -10,14 +10,14 @@ import {
   type StructuralAxis,
   type VictoryType,
   getHeroAsset,
+  metricEvidenceKey,
 } from '@/lib/types';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface InspectPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await getAllReferences()).map((r) => ({ slug: r.slug }));
 }
 
 export async function generateMetadata({ params }: InspectPageProps): Promise<Metadata> {
@@ -157,8 +157,8 @@ function AxisBento({ axes }: { axes: StructuralAxis[] }) {
       {scored.slice(7, 9).map((axis) => (
         <AxisCard key={axis.name} axis={axis} span={6} />
       ))}
-      {Array.from({ length: empties }, (_, i) => (
-        <div key={`empty-${i}`} className="ax-c empty" style={{ gridColumn: 'span 3' }}>
+      {['axis-a', 'axis-b', 'axis-c', 'axis-d', 'axis-e', 'axis-f'].slice(0, empties).map((slot) => (
+        <div key={slot} className="ax-c empty" style={{ gridColumn: 'span 3' }}>
           <h4>Axe à scorer</h4>
           <div className="ev">Aucune évidence renseignée</div>
         </div>
@@ -202,20 +202,13 @@ function PerfBento({ reference }: { reference: Reference }) {
     'dark',
   ];
   const top = reference.performance.metrics.slice(0, 5);
-  const filled =
-    top.length < 5
-      ? [
-          ...top,
-          ...Array.from({ length: 5 - top.length }, () => null),
-        ]
-      : top;
   return (
     <div className="perf-bento">
-      {filled.map((m, i) => {
-        const tone = palette[i] ?? '';
+      {palette.map((tone, i) => {
+        const m = top[i];
         if (!m) {
           return (
-            <div key={`empty-${i}`} className={`perf-c${tone ? ` ${tone}` : ''}`}>
+            <div key={`empty-${tone || 'neutral'}`} className={`perf-c${tone ? ` ${tone}` : ''}`}>
               <div className="k">À renseigner</div>
               <div className="v" style={{ opacity: 0.4 }}>—</div>
               <div className="src">Aucune métrique</div>
@@ -224,7 +217,7 @@ function PerfBento({ reference }: { reference: Reference }) {
         }
         const attClass = attributionClass(m.attribution);
         return (
-          <div key={`${m.kind}-${i}`} className={`perf-c${tone ? ` ${tone}` : ''}`}>
+          <div key={metricEvidenceKey(m)} className={`perf-c${tone ? ` ${tone}` : ''}`}>
             <div className="k">{humanMetricName(m.kind)}</div>
             <div className={`v ${m.kind.endsWith('_PCT') && m.value > 0 ? 'up' : ''}`}>
               {formatBigValue(m)}

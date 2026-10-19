@@ -337,8 +337,8 @@ function SearchBar({
   const advancedHref = buildHref(query, { mode: 'advanced' });
   const basicHref = buildHref(query, { mode: undefined });
   return (
-    <div className="search-bar-wrap">
-      <form action="/search" method="get" role="search">
+    <search className="search-bar-wrap">
+      <form action="/search" method="get">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
           <title>Recherche</title>
           <circle cx="7" cy="7" r="4.5" />
@@ -369,7 +369,7 @@ function SearchBar({
           {totalCount.toLocaleString('fr-FR')} indexée{totalCount > 1 ? 's' : ''}
         </div>
       </div>
-    </div>
+    </search>
   );
 }
 
@@ -904,7 +904,7 @@ function ResultRow({ reference: r, query }: { reference: Reference; query: Parse
         {why && <p className="why">{why}</p>}
       </div>
       <div className="meta">
-        <div className="sc">{r.performance.composite}</div>
+        <div className="sc">{r.performance.composite ?? "—"}</div>
         <div className="sc-lab">Score</div>
         {top && <div className="victory">{VICTORY_LABELS[top]}</div>}
       </div>

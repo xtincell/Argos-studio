@@ -9,7 +9,9 @@
 // round-trip even if many helpers ask for the full reference set.
 
 import { cache } from 'react';
+import { unstable_noStore as noStore } from 'next/cache';
 import { prisma, REFERENCE_INCLUDE, dbToReference } from './db';
+import { slugify } from './utils';
 import type {
   Asset,
   AssetFunction,
@@ -24,20 +26,14 @@ import type {
 } from './types';
 import { MOCK_SECTORS } from '@/data/mock-references';
 
-export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+export { slugify } from './utils';
 
 /* -------------------------------------------------------------------------- */
 /* Reference access                                                           */
 /* -------------------------------------------------------------------------- */
 
 export const getAllReferences = cache(async (): Promise<Reference[]> => {
+  noStore();
   const rows = await prisma.reference.findMany({
     include: REFERENCE_INCLUDE,
     orderBy: { emissionYear: 'desc' },
@@ -46,6 +42,7 @@ export const getAllReferences = cache(async (): Promise<Reference[]> => {
 });
 
 export async function getReferenceBySlug(slug: string): Promise<Reference | undefined> {
+  noStore();
   const row = await prisma.reference.findUnique({
     where: { slug },
     include: REFERENCE_INCLUDE,

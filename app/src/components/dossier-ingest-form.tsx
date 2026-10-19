@@ -20,9 +20,30 @@ type SubmitState =
   | { kind: 'success'; slug: string; assetCount: number }
   | { kind: 'error'; message: string };
 
-export function DossierIngestForm() {
+export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
   const inputId = useId();
   const [json, setJson] = useState('');
+  const [credential, setCredential] = useState('');
+  const [expectedVersion, setExpectedVersion] = useState<string | null>(null);
+  useEffect(() => {
+    if (!initialSlug) return;
+    let active = true;
+    (async () => {
+      const response = await fetch(`/api/v1/references/${encodeURIComponent(initialSlug)}?format=dossier`, { cache: 'no-store' });
+      if (!response.ok) {
+        const current = await fetch(`/api/v1/references/${encodeURIComponent(initialSlug)}`, { cache: 'no-store' });
+        const payload = await current.json();
+        if (active) {
+          setExpectedVersion(payload.data?.updatedAt ? JSON.stringify(payload.data.updatedAt) : null);
+          setSubmitState({ kind: 'error', message: 'Le dossier d’origine manque. Chargez votre fichier pour reprendre cette référence ; aucune source n’est reconstituée automatiquement.' });
+        }
+        return;
+      }
+      const original = await response.json();
+      if (active) { setExpectedVersion(response.headers.get('ETag')); setJson(JSON.stringify(original, null, 2)); }
+    })().catch(() => { if (active) setSubmitState({ kind: 'error', message: 'Le dossier courant n’a pas pu être reçu. Vos données ne sont pas déclarées absentes.' }); });
+    return () => { active = false; };
+  }, [initialSlug]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [transform, setTransform] = useState<TransformResult | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>({ kind: 'idle' });
@@ -66,24 +87,25 @@ export function DossierIngestForm() {
   }, [validation]);
 
   async function handleSubmit() {
-    if (!validation?.ok || !validation.dossier) return;
+    if (!validation?.ok || !validation.dossier || credential.length < 24) return;
     setSubmitState({ kind: 'submitting' });
     try {
       const res = await fetch('/api/v1/ingest/dossier', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${credential}`, ...(expectedVersion ? { 'If-Match': expectedVersion } : {}) },
         body: json,
       });
       const data = (await res.json()) as
-        | { ok: true; slug: string; assetCount: number }
-        | { ok: false; error: string };
+        | { ok: true; slug: string; assetCount: number; updatedAt: string }
+        | { ok: false; error: string; message?: string };
       if (!res.ok || !data.ok) {
         setSubmitState({
           kind: 'error',
-          message: 'error' in data ? data.error : `HTTP ${res.status}`,
+          message: 'error' in data ? (data.message ?? data.error) : `HTTP ${res.status}`,
         });
         return;
       }
+      setExpectedVersion(JSON.stringify(data.updatedAt));
       setSubmitState({ kind: 'success', slug: data.slug, assetCount: data.assetCount });
     } catch (err) {
       setSubmitState({
@@ -160,6 +182,10 @@ export function DossierIngestForm() {
           </div>
         </div>
 
+        <label className="block text-sm">Clé d’admission de cette bibliothèque
+          <input type="password" autoComplete="off" value={credential} onChange={e => setCredential(e.target.value)} className="mt-1 block w-full rounded border border-border bg-card p-2" />
+          <span className="text-xs text-muted-foreground">Conservée dans cet écran uniquement. La lecture et la prévisualisation restent disponibles sans clé.</span>
+        </label>
         <textarea
           id={inputId}
           value={json}
@@ -186,7 +212,7 @@ export function DossierIngestForm() {
                 variant="accent"
                 size="lg"
                 onClick={handleSubmit}
-                disabled={submitState.kind === 'submitting'}
+                disabled={submitState.kind === 'submitting' || credential.length < 24}
               >
                 {submitState.kind === 'submitting' ? (
                   <>
@@ -204,10 +230,12 @@ export function DossierIngestForm() {
                   {submitState.assetCount} asset{submitState.assetCount > 1 ? 's' : ''}
                 </span>
               )}
+              {submitState.kind === 'success' && <a className="underline" href={`/work/${submitState.slug}`}>Ouvrir la référence</a>}
               {submitState.kind === 'error' && (
                 <span className="inline-flex items-center gap-1.5 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   {submitState.message}
+                  {transform && <a className="underline" href={`/admin/ingest?slug=${transform.reference.slug}`}>Charger le dossier actuel</a>}
                 </span>
               )}
             </div>
@@ -269,8 +297,8 @@ function ValidationDisplay({
           {validation.errors.length > 1 ? 's' : ''})
         </h3>
         <ul className="mt-3 space-y-1 font-mono text-xs">
-          {validation.errors.slice(0, 8).map((e, i) => (
-            <li key={i} className="flex gap-2">
+          {validation.errors.slice(0, 8).map((e) => (
+            <li key={JSON.stringify([e.path, e.message])} className="flex gap-2">
               <span className="shrink-0 text-destructive">×</span>
               <span className="text-muted-foreground">
                 <code className="text-foreground">{e.path}</code> — {e.message}
@@ -330,8 +358,8 @@ function AuditDisplay({ audit }: { audit: TransformResult['audit'] }) {
         <Row label="Sources citées">{audit.sourcesCount}</Row>
       </dl>
       <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-        {audit.notes.map((n, i) => (
-          <li key={i}>• {n}</li>
+        {Array.from(new Set(audit.notes)).map((n) => (
+          <li key={n}>• {n}</li>
         ))}
       </ul>
     </div>

@@ -74,6 +74,7 @@ export interface StructuralAxis {
   value: string;
   confidence: number;
   evidence?: string;
+  sourceUrl?: string;
 }
 
 /**
@@ -206,6 +207,9 @@ export interface Asset {
   aspectRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '21:9' | '4:5';
   /** For TEXT kind (taglines, headlines, copy, manifestos), the actual content. */
   text?: string;
+  /** Citation and licensing posture supplied for this individual asset. */
+  sourceUrl?: string;
+  sourceLicense?: string;
   /** Editorial caption explaining what this asset is and where it ran. */
   caption?: string;
   /** Alt text for accessibility. */
@@ -300,13 +304,16 @@ export interface PerformanceMetric {
   attribution: AttributionConfidence;
   /** Source of the metric — case study, press release, experiment, etc. */
   source: string;
+  /** Exact cited dossier URL, when explicitly supplied by sourceIndex. */
+  sourceUrl?: string;
   /** When the metric was measured (YYYY-MM). */
   measuredAtYearMonth?: string;
 }
 
 export interface PerformanceScore {
   /** Composite 0-100 score, computed from metrics weighted by goal and attribution. */
-  composite: number;
+  composite: number | null;
+  compositeSource?: "provided-by-researcher" | "computed-from-metrics" | "not-measured" | "legacy-unqualified";
   /** Goals the operation primarily aimed to achieve, in order of weight. */
   primaryGoals: OperationGoal[];
   /** All recorded metrics, operation-level and asset-level. */
@@ -317,7 +324,17 @@ export interface PerformanceScore {
   rationale?: string;
 }
 
+/** Evidence identity stays stable when measurements are reordered. */
+export function metricEvidenceKey(metric: PerformanceMetric): string {
+  return JSON.stringify([metric.kind, metric.scope, metric.scopedAssetId ?? null,
+    metric.goal, metric.value, metric.displayValue ?? null, metric.source,
+    metric.sourceUrl ?? null, metric.measuredAtYearMonth ?? null, metric.attribution]);
+}
+
 export interface Reference {
+  /** Version of the canonical reference; supplied on amendments. */
+  updatedAt?: string;
+  hasSourceDossier?: boolean;
   id: string;
   slug: string;
   title: string;

@@ -2,6 +2,25 @@
 
 Two-layer ingestion pipeline for Argos. See [`docs/decisions/0008-two-layer-crawling-source-and-brand-watch.md`](../docs/decisions/0008-two-layer-crawling-source-and-brand-watch.md) for the architectural rationale.
 
+## Réception 0.1.1 — partielle
+
+`npm test` reçoit dix scénarios sans appel réseau ni LLM payant. Les fixtures
+sont une démonstration, pas des preuves de campagnes réellement exécutées.
+Chaque source rend un reçu `FIXTURE`, `OBSERVED`, `NO_SIGNAL`, `PARTIAL`,
+`UNAVAILABLE` ou `FAILED`. Une panne conserve les observations des autres sources
+et d'autres articles ; `NO_SIGNAL` ne prouve pas la couverture complète.
+Cannes et les trois périmètres stub restent indisponibles en mode vivant.
+Aucune fixture ne leur est substituée. Une option CLI inconnue est refusée
+avant le choix du mode. Seuls `--dry-run` et `--limit=<entier positif>` sont admis.
+
+Le bundle exige marque, année et identité id/slug identiques. Partager une
+campagne ombrelle ne prouve pas que deux opérations sont identiques. Les mesures
+de sources, dates, valeurs ou attributions différentes sont conservées ; seul
+leur rejeu identique est dédupliqué. Les axes restent une sélection heuristique
+et les actifs de même id restent premier reçu : les signaux bruts sont conservés
+pour revue. Ces arbitrages, la sécurité des URL, les quotas, l'authentification,
+la collecte vivante et l'admission dans le fonds canonique restent à recevoir.
+
 ## Quick start (dry-run, no API key needed)
 
 ```bash
@@ -21,9 +40,10 @@ npm run watch:apple
 ```
 
 In live mode :
-- Source crawlers fetch real pages over HTTP (rate-limited, respecting robots.txt)
+- Apple Newsroom fetches real pages over HTTP with rate limiting. Robots/terms
+  enforcement and complete coverage are not implemented or received.
 - The parser calls Claude Sonnet 4.6 to extract structured `Reference` + `Asset[]` from each scraped item
-- Output is the same shape as dry-run, with real extracted data
+- Unavailable sources are explicit; a result is not a certificate of complete coverage.
 
 ## What this does
 
@@ -32,15 +52,17 @@ In live mode :
 One module per source. Récolte passive et large. Implemented:
 
 - `apple-newsroom.ts` — Apple's own press room (perimeter: `BRAND_OWNED`)
-- `cannes-lions.ts` — Cannes Lions Archive entries filtered by brand (perimeter: `AWARDS_DATABASE`)
+- `cannes-lions.ts` — fixtures only; live access is unavailable (`AWARDS_DATABASE`)
 
-Each source crawler exports a function `crawl(config)` returning an array of `RawSignal`. Crawlers accept a `fetch` function via dependency injection — production uses `undici.fetch`, tests use a fixture loader.
+Each crawler exports `crawl(config)` returning `RawSignal[]`. Newsroom's live
+function accepts an injected fetcher for tests. The collector retains partial
+signals and a qualified receipt; no shared live access has been received.
 
 ### Layer 2 — Brand watch agents (`src/watches/`)
 
 One agent per brand of interest. Orchestrates Layer 1 outputs + actively queries perimeters Layer 1 doesn't cover.
 
-- `apple.ts` — Apple brand watch. Orchestrates `apple-newsroom` + `cannes-lions[brand=apple]` + stubs for `youtube` (brand-owned), `adage` (industry press), `cultural-signal` (memes/parodies search).
+- `apple.ts` — Apple Newsroom, Cannes, cultural/performance/independent-analysis stubs.
 
 ### Parser (`src/lib/parser.ts`)
 
@@ -50,9 +72,8 @@ Pipeline :
 1. Preprocess (strip nav/footer, extract main content + structured data + media URLs)
 2. LLM extraction (Anthropic Claude — system prompt with full taxonomy, JSON output)
 3. Zod validation against `ReferenceSchema`
-4. Retry with corrective prompt if invalid
-5. Bundle assets (group by role, identify hero, link key-frames to parent videos)
-6. Return validated `Reference`
+4. Invalid extraction returns a review entry; no corrective retry is implemented
+5. Return validated `Reference`; assets are those supplied by the extractor
 
 ### Bundler (`src/lib/bundle.ts`)
 
@@ -79,14 +100,14 @@ Cross-signal merger. When Layer 2 receives multiple signals that refer to the sa
                    │  apple.ts                       │
                    │   ├─ filters L1 signals         │
                    │   ├─ queries non-L1 perimeters │
-                   │   └─ assembles BrandDossier    │
+                   │   └─ returns watch results    │
                    └─────────────┬──────────────────┘
                                  │
                    ┌─────────────▼──────────────────┐
                    │  Parser (LLM + Zod)             │
                    │   ├─ extract structured fields  │
                    │   ├─ validate                   │
-                   │   └─ bundle assets              │
+                   │   └─ validate assets            │
                    └─────────────┬──────────────────┘
                                  │
                                  ▼
@@ -99,36 +120,11 @@ Cross-signal merger. When Layer 2 receives multiple signals that refer to the sa
 
 ## Files
 
-```
-workers/
-├── src/
-│   ├── lib/
-│   │   ├── types.ts          # Type definitions (mirrored from app)
-│   │   ├── zod-schemas.ts    # Runtime validation matching the types
-│   │   ├── logger.ts         # Pino structured logger
-│   │   ├── fetcher.ts        # Resilient HTTP fetcher with retry + rate limit
-│   │   ├── llm.ts            # Anthropic SDK wrapper with prompt caching
-│   │   ├── parser.ts         # LLM-driven extraction → validated Reference
-│   │   └── bundle.ts         # Cross-signal merging into operations
-│   ├── prompts/
-│   │   └── v1/
-│   │       └── extract-operation.ts   # Versioned extraction system prompt
-│   ├── sources/              # Layer 1
-│   │   ├── types.ts
-│   │   ├── apple-newsroom.ts
-│   │   └── cannes-lions.ts
-│   ├── watches/              # Layer 2
-│   │   ├── types.ts
-│   │   └── apple.ts
-│   ├── pipeline.ts           # End-to-end orchestration
-│   └── run-apple-watch.ts    # CLI entry point
-├── tests/
-│   └── fixtures/
-│       ├── apple-newsroom-2024-think-different-25th.html
-│       ├── cannes-lions-1998-think-different.json
-│       └── llm-output-think-different.json
-└── output/                   # Generated dossier runs
-```
+`src/run-apple-watch.ts` orchestrates the CLI; `src/watches/apple.ts` prepares
+signals, `src/lib/collect.ts` retains qualified collection receipts,
+`src/lib/parser.ts` validates extraction, and `src/lib/bundle.ts` groups operations.
+`tests/watch-integrity.test.ts` uses bundled fixtures and injected HTTP responses.
+There is no `pipeline.ts`, automatic database admission or dossier-update writer.
 
 ## Outputs
 
@@ -141,13 +137,13 @@ Each watch run writes to `output/apple-watch-<timestamp>.json` with the followin
   "runStartedAt": "2026-05-12T14:23:11.234Z",
   "runDurationMs": 4271,
   "mode": "dry-run" | "live",
-  "sourcesQueried": ["apple-newsroom", "cannes-lions"],
+  "sourcesQueried": ["apple-newsroom"],
+  "sourceReceipts": [{"source":"cannes-lions", "perimeter":"AWARDS_DATABASE", "status":"UNAVAILABLE", "signalCount":0}],
   "signalsCollected": 4,
   "operationsIdentified": 2,
   "assetsExtracted": 11,
   "operations": [/* Reference[] */],
-  "signalsLog": [/* BrandSignal[] */],
-  "dossierUpdate": {/* BrandDossier delta */}
+  "signalsLog": [/* ParsedSignal[] */]
 }
 ```
 

@@ -2,7 +2,7 @@
 
 import { TrendingUp, X } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AssetLayout } from './asset-layout';
 import { Badge } from './ui/badge';
 import {
@@ -15,6 +15,7 @@ import {
   type PerformanceMetric,
   type Reference,
   getMetricsForAsset,
+  metricEvidenceKey,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -35,16 +36,6 @@ interface AssetGalleryProps {
 
 export function AssetGallery({ assets, reference, className }: AssetGalleryProps) {
   const [focusedAsset, setFocusedAsset] = useState<Asset | null>(null);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!focusedAsset) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setFocusedAsset(null);
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [focusedAsset]);
 
   if (assets.length === 0) return null;
 
@@ -93,8 +84,8 @@ export function AssetGallery({ assets, reference, className }: AssetGalleryProps
                 )}
                 {metrics.length > 0 && (
                   <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-success">
-                    {metrics.slice(0, 2).map((m, i) => (
-                      <li key={i}>
+                    {metrics.slice(0, 2).map((m) => (
+                      <li key={metricEvidenceKey(m)}>
                         {PERFORMANCE_METRIC_LABELS[m.kind]}:{' '}
                         <strong className="font-display">
                           {m.displayValue ?? m.value}
@@ -206,16 +197,22 @@ function Lightbox({
   metrics: PerformanceMetric[];
   onClose: () => void;
 }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    element?.showModal();
+    return () => { if (element?.open) element.close(); };
+  }, []);
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialog}
       aria-label={asset.caption ?? 'Asset preview'}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 m-0 flex h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-background/95 p-4 backdrop-blur-md animate-fade-in"
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.preventDefault(); onClose(); }
       }}
+      onCancel={onClose}
     >
       <button
         type="button"
@@ -259,8 +256,8 @@ function Lightbox({
               Asset-level performance
             </p>
             <ul className="mt-3 space-y-2 text-sm">
-              {metrics.map((m, i) => (
-                <li key={i} className="flex items-baseline justify-between gap-3">
+              {metrics.map((m) => (
+                <li key={metricEvidenceKey(m)} className="flex items-baseline justify-between gap-3">
                   <span className="text-muted-foreground">
                     {PERFORMANCE_METRIC_LABELS[m.kind]}
                   </span>
@@ -273,6 +270,6 @@ function Lightbox({
           </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }
