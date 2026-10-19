@@ -99,7 +99,7 @@ function WorkRow({ reference: r }: { reference: Reference }) {
         <p className="sum">{r.summary}</p>
       </div>
       <div className="meta">
-        <div className="sc">{r.performance.composite}</div>
+        <div className="sc">{r.performance.composite ?? "—"}</div>
         <div className="sc-lab">{r.assets.length} asset{r.assets.length > 1 ? 's' : ''}</div>
       </div>
     </Link>
@@ -112,10 +112,9 @@ function sortRefs(refs: Reference[], sort: string): Reference[] {
     case 'oldest':
       return copy.sort((a, b) => a.emissionYear - b.emissionYear);
     case 'composite':
-      return copy.sort((a, b) => b.performance.composite - a.performance.composite);
+      return copy.sort((a, b) => (b.performance.composite ?? -1) - (a.performance.composite ?? -1));
     case 'assets':
       return copy.sort((a, b) => b.assets.length - a.assets.length);
-    case 'recent':
     default:
       return copy.sort((a, b) => b.emissionYear - a.emissionYear);
   }

@@ -206,7 +206,7 @@ async function main() {
     prisma.researchSource.count(),
     prisma.filiation.count(),
   ]);
-  console.log(`\n═══ Seed complete ═══`);
+  console.log('\n═══ Seed complete ═══');
   console.log(`  references:       ${counts[0]}`);
   console.log(`  assets:           ${counts[1]}`);
   console.log(`  structural axes:  ${counts[2]}`);
@@ -256,7 +256,8 @@ async function upsertReference(ref: Reference, extras: UpsertExtras) {
     summary: ref.summary,
     patternObservation: ref.patternObservation,
     significance: ref.significance,
-    performanceComposite: Math.round(ref.performance.composite),
+    performanceComposite: ref.performance.composite === null ? null : Math.round(ref.performance.composite),
+    performanceCompositeSource: ref.performance.compositeSource,
     performancePrimaryGoalsJson: JSON.stringify(ref.performance.primaryGoals),
     performanceOverallAttribution: ref.performance.overallAttribution,
     performanceRationale: ref.performance.rationale,

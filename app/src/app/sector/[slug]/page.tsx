@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
-import { getReferencesBySector, getSectorMeta, listSectors, slugify } from '@/lib/library';
+import { getReferencesBySector, getSectorMeta, slugify } from '@/lib/library';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface SectorPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await listSectors()).map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({ params }: SectorPageProps): Promise<Metadata> {

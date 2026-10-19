@@ -9,7 +9,6 @@ interface SearchBarProps {
   initialQuery?: string;
   placeholder?: string;
   size?: 'md' | 'lg';
-  autoFocus?: boolean;
   className?: string;
 }
 
@@ -25,9 +24,8 @@ const ICON_SIZE: Record<NonNullable<SearchBarProps['size']>, string> = {
 
 export function SearchBar({
   initialQuery = '',
-  placeholder = 'Search 27,432 campaigns by brand, market, agency, or pattern…',
+  placeholder = 'Search references by brand, market, agency, or pattern…',
   size = 'lg',
-  autoFocus,
   className,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
@@ -42,36 +40,35 @@ export function SearchBar({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      role="search"
+    <search
       aria-label="Argos search"
       className={cn('relative w-full', className)}
     >
-      <label htmlFor={inputId} className="sr-only">
-        Search references
-      </label>
-      <Search
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground',
-          ICON_SIZE[size],
-        )}
-      />
-      <input
-        id={inputId}
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        className={cn(
-          'w-full rounded-full border border-border bg-card text-foreground shadow-sm transition-all',
-          'placeholder:text-muted-foreground',
-          'focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
-          SIZE_STYLES[size],
-        )}
-      />
-    </form>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor={inputId} className="sr-only">
+          Search references
+        </label>
+        <Search
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground',
+            ICON_SIZE[size],
+          )}
+        />
+        <input
+          id={inputId}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          className={cn(
+            'w-full rounded-full border border-border bg-card text-foreground shadow-sm transition-all',
+            'placeholder:text-muted-foreground',
+            'focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+            SIZE_STYLES[size],
+          )}
+        />
+      </form>
+    </search>
   );
 }

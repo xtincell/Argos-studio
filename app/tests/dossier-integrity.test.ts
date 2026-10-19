@@ -12,6 +12,7 @@ writeFileSync(join(directory, 'receipt.db'), '');
 process.env.DATABASE_URL = `file:${join(directory, 'receipt.db')}`;
 const { prisma, dbToReference, REFERENCE_INCLUDE } = await import('../src/lib/db');
 const { ingestDossier } = await import('../src/server/ingest');
+process.env.ARGOS_INGEST_API_KEY = 'synthetic-editorial-library-receipt-key-20261019';
 const { POST } = await import('../src/app/api/v1/ingest/dossier/route');
 const { NextRequest } = await import('next/server');
 const { GET: listReferences } = await import('../src/app/api/v1/references/route');
@@ -81,9 +82,9 @@ test('stored axes and metrics retain the URL of their cited source', async () =>
 test('amending a dossier clears an explicitly removed optional field', async () => {
   const input = dossier('Amendement fidèle');
   input.operation.agencyCreator = 'Agence de recette';
-  await ingestDossier(input);
+  const first = await ingestDossier(input);
   input.operation.agencyCreator = undefined;
-  const receipt = await ingestDossier(input);
+  const receipt = await ingestDossier(input, first.updatedAt);
   const row = await prisma.reference.findUniqueOrThrow({
     where: { id: receipt.result.reference.id },
   });
@@ -136,7 +137,7 @@ test('an unresolved filiation returns 422 and rolls back every part of the dossi
     new NextRequest('http://argos.example.test/api/v1/ingest/dossier', {
       method: 'POST',
       body: JSON.stringify(input),
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.ARGOS_INGEST_API_KEY}` },
     }),
   );
   assert.equal(response.status, 422);
@@ -196,4 +197,94 @@ test('the public search API returns the stored dossier and citations without the
   assert.equal(payload.data[0].id, receipt.result.reference.id);
   assert.deepEqual(payload.data[0].researchSources, input.sources);
   assert.equal(payload.data[0].researcherContact, undefined);
+});
+
+test('no metric and no declared composite stays unknown through transform and storage', async () => {
+  for (const confidence of ['HIGH', 'MEDIUM', 'LOW', 'ESTIMATED'] as const) {
+    const input = dossier(`Sans mesure ${confidence}`);
+    input.confidence = confidence;
+    input.performance.metrics = [];
+    input.performance.composite = undefined;
+    const transformed = dossierToReference(input);
+    assert.equal(transformed.reference.performance.composite, null);
+    assert.equal(transformed.audit.compositeScoreSource, 'not-measured');
+    const stored = await ingestDossier(input);
+    const row = await prisma.reference.findUniqueOrThrow({ where: { id: stored.result.reference.id }, include: REFERENCE_INCLUDE });
+    assert.equal(row.performanceComposite, null);
+    assert.equal(dbToReference(row).performance.composite, null);
+    assert.equal(row.performanceCompositeSource, 'not-measured');
+  }
+  const zero = dossier('Zéro expressément déclaré');
+  zero.performance.metrics = [];
+  zero.performance.composite = 0;
+  assert.equal(dossierToReference(zero).reference.performance.composite, 0);
+  assert.equal(dossierToReference(zero).audit.compositeScoreSource, 'provided-by-researcher');
+});
+
+test('each stored asset retains its own citation and licence without filling missing provenance', async () => {
+  const input = dossier('Preuves par actif');
+  const asset = required(input.assets[0]);
+  asset.sourceIndex = 0;
+  asset.sourceLicense = 'fair-use';
+  if (input.assets[1]) { input.assets[1].sourceIndex = undefined; input.assets[1].sourceLicense = undefined; }
+  const receipt = await ingestDossier(input);
+  const row = await prisma.reference.findUniqueOrThrow({ where: { id: receipt.result.reference.id }, include: REFERENCE_INCLUDE });
+  const stored = required(dbToReference(row).assets[0]);
+  assert.equal(stored.sourceUrl, required(input.sources[0]).url);
+  assert.equal(stored.sourceLicense, 'fair-use');
+  if (row.assets[1]) { assert.equal(row.assets[1].sourceUrl, null); assert.equal(row.assets[1].sourceLicense, null); }
+});
+
+test('version refusal, immutable previous snapshot and public dossier return preserve the private contact', async () => {
+  const input = dossier('Reprise versionnée');
+  const first = await ingestDossier(input);
+  const prior = await prisma.reference.findUniqueOrThrow({ where: { id: first.result.reference.id }, include: REFERENCE_INCLUDE });
+  input.summary += ' Modification documentaire explicite.';
+  await assert.rejects(ingestDossier(input), { code: 'VERSION_CONFLICT' });
+  const amended = await ingestDossier(input, first.updatedAt);
+  assert.notEqual(amended.updatedAt, first.updatedAt);
+  const revision = await prisma.referenceRevision.findFirstOrThrow({ where: { referenceId: first.result.reference.id } });
+  const previous = JSON.parse(revision.snapshotJson);
+  assert.equal(previous.summary, prior.summary);
+  assert.equal(previous.assets.length, prior.assets.length);
+  assert.equal(previous.researcherContact, 'private-researcher@example.test');
+  await ingestDossier(input); // Identical replay is harmless and needs no fresh version.
+  assert.equal(await prisma.referenceRevision.count({ where: { referenceId: prior.id } }), 1);
+  const { GET } = await import('../src/app/api/v1/references/[slug]/route');
+  const exported = await GET(new NextRequest(`http://localhost/api/v1/references/${prior.slug}?format=dossier`), { params: Promise.resolve({ slug: prior.slug }) });
+  assert.equal(exported.status, 200);
+  assert.equal(exported.headers.get('ETag'), JSON.stringify(amended.updatedAt));
+  const publicDossier = await exported.json();
+  assert.equal(publicDossier.researcher.contact, undefined);
+  assert.equal(JSON.stringify(publicDossier).includes('private-researcher@example.test'), false);
+  assert.deepEqual(publicDossier.assets, input.assets);
+  publicDossier.summary += ' Correction depuis le dossier public.';
+  const current = await ingestDossier(ResearchDossierSchema.parse(publicDossier), amended.updatedAt);
+  assert.notEqual(current.updatedAt, amended.updatedAt);
+  assert.equal((await prisma.reference.findUniqueOrThrow({ where: { id: prior.id } })).researcherContact, prior.researcherContact);
+  input.summary += ' Version devenue périmée.';
+  await assert.rejects(ingestDossier(input, first.updatedAt), { code: 'VERSION_CONFLICT' });
+  assert.equal(await prisma.referenceRevision.count({ where: { referenceId: prior.id } }), 2);
+});
+
+test('write access is checked before parsing and rejected requests have no data effect', async () => {
+  const before = await prisma.reference.count();
+  const key = process.env.ARGOS_INGEST_API_KEY;
+  const request = (headers: Record<string, string> = {}) => new NextRequest('http://localhost/api/v1/ingest/dossier', { method: 'POST', headers, body: 'invalid-json' });
+  assert.equal((await POST(request())).status, 401);
+  assert.equal((await POST(request({ Authorization: 'Bearer wrong-synthetic-key' }))).status, 401);
+  assert.equal((await POST(request({ Authorization: `Bearer ${key}`, Origin: 'https://foreign.example.test' }))).status, 403);
+  try {
+    process.env.ARGOS_INGEST_API_KEY = '';
+    assert.equal((await POST(request())).status, 503);
+  } finally { process.env.ARGOS_INGEST_API_KEY = key; }
+  assert.equal(await prisma.reference.count(), before);
+});
+
+test('source pointers reject executable or credential-bearing URLs', () => {
+  for (const url of ['javascript:alert(1)', 'data:text/html,hello', 'https://user:password@example.test', 'not a URL', 'https://[invalid']) {
+    const input = dossier('Pointeur public sûr');
+    required(input.sources[0]).url = url;
+    assert.equal(ResearchDossierSchema.safeParse(input).success, false);
+  }
 });

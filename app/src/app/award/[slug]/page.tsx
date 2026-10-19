@@ -2,15 +2,14 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { VICTORY_LABELS } from '@/lib/taxonomy';
-import { getReferencesByAward, listAwards, slugify } from '@/lib/library';
+import { getReferencesByAward, slugify } from '@/lib/library';
 import type { VictoryType } from '@/lib/types';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface AwardPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await listAwards()).map((a) => ({ slug: a.slug }));
 }
 
 function findAward(slug: string): VictoryType | undefined {

@@ -3,8 +3,8 @@
 // Dev provider : SQLite (zero-setup, embedded). Production target : PostgreSQL with
 // pgvector. The schema below is provider-agnostic — enums are stored as strings
 // (validated by Zod at the application layer in app/src/lib/research-dossier.ts)
-// and arrays are stored as JSON strings. The swap from SQLite to Postgres only
-// requires changing the `provider` below + DATABASE_URL.
+// and arrays are stored as JSON strings. PostgreSQL requires its own schema,
+// migrations and restore receipt; changing DATABASE_URL alone is unsupported.
 
 generator client {
   provider = "prisma-client-js"
@@ -47,7 +47,8 @@ model Reference {
   significance                  String?
 
   // Performance score (embedded fields — metrics in a separate table)
-  performanceComposite          Int      @default(50)
+  performanceComposite          Int?
+  performanceCompositeSource    String   @default("legacy-unqualified")
   performancePrimaryGoalsJson   String   @default("[]")
   performanceOverallAttribution String   // PROVEN_CAUSAL | CORRELATED | ESTIMATED | CLAIMED
   performanceRationale          String?
@@ -57,11 +58,13 @@ model Reference {
   researcherName                String?  // for manual-dossier
   researcherContact             String?
   researcherToolUsed            String?
+  sourceDossierJson             String?
   researchDate                  String?
   ingestedAt                    DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
   // Relations
+  revisions                     ReferenceRevision[]
   assets                        Asset[]
   axes                          StructuralAxis[]
   metrics                       PerformanceMetric[]
@@ -100,6 +103,8 @@ model Asset {
   alt                 String?
   durationSec         Int?
   format              String?
+  sourceUrl           String?
+  sourceLicense       String?
   extractionMethod    String?
   derivedFromAssetId  String?
   derivedFromAsset    Asset?   @relation("AssetDerivation", fields: [derivedFromAssetId], references: [id], onDelete: SetNull)
@@ -261,4 +266,15 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ReferenceRevision {
+  id           String    @id @default(cuid())
+  referenceId  String
+  reference    Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+  versionAt    DateTime
+  snapshotJson String
+  retainedAt   DateTime  @default(now())
+
+  @@unique([referenceId, versionAt])
 }

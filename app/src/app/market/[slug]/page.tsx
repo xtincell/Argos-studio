@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
-import { getReferencesByMarket, listMarkets, slugify } from '@/lib/library';
+import { getReferencesByMarket, slugify } from '@/lib/library';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface MarketPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await listMarkets()).map((m) => ({ slug: m.slug }));
 }
 
 export async function generateMetadata({ params }: MarketPageProps): Promise<Metadata> {

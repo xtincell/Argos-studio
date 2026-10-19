@@ -8,7 +8,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function IngestPage() {
+export default async function IngestPage({ searchParams }: { searchParams: Promise<{ slug?: string }> }) {
+  const { slug } = await searchParams;
   return (
     <section className="view">
       <div className="wrap" style={{ paddingTop: 24 }}>
@@ -73,7 +74,7 @@ export default function IngestPage() {
           </div>
         </header>
 
-        <DossierIngestForm />
+        <DossierIngestForm initialSlug={slug} />
 
         <section
           style={{

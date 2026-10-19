@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
-import { getReferencesByYear, listYears, slugify } from '@/lib/library';
+import { getReferencesByYear, slugify } from '@/lib/library';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface YearPageProps {
   params: Promise<{ year: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await listYears()).map((y) => ({ year: String(y.value) }));
 }
 
 export async function generateMetadata({ params }: YearPageProps): Promise<Metadata> {
