@@ -2,18 +2,16 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getAllReferences, getAssetById, getAssetsByFunction } from '@/lib/library';
+import { getAssetById, getAssetsByFunction } from '@/lib/library';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import type { Asset, AssetFunction, Reference } from '@/lib/types';
 import { metricEvidenceKey } from '@/lib/types';
 
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
+
 interface AssetPageProps {
   params: Promise<{ id: string }>;
-}
-
-export async function generateStaticParams() {
-  const refs = await getAllReferences();
-  return refs.flatMap((r) => r.assets.map((a) => ({ id: a.id })));
 }
 
 export async function generateMetadata({ params }: AssetPageProps): Promise<Metadata> {
@@ -265,6 +263,12 @@ export default async function AssetPage({ params }: AssetPageProps) {
               </div>
             </MetaSection>
 
+            <MetaSection title="Source de l’actif">
+              {asset.sourceUrl ? <a href={asset.sourceUrl} target="_blank" rel="noopener noreferrer">{asset.sourceUrl}</a> : 'À documenter'}
+            </MetaSection>
+            <MetaSection title="Licence déclarée">
+              {asset.sourceLicense ?? 'À qualifier'}
+            </MetaSection>
             <MetaSection title="Type média">
               <div style={{ fontSize: 14, color: 'var(--ink)' }}>{humanKind(asset.kind)}</div>
             </MetaSection>

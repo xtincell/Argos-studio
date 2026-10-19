@@ -67,6 +67,8 @@ type ReferenceRow = Prisma.ReferenceGetPayload<{
 export function dbToReference(row: ReferenceRow): Reference {
   return {
     id: row.id,
+    updatedAt: row.updatedAt.toISOString(),
+    hasSourceDossier: row.sourceDossierJson !== null,
     slug: row.slug,
     title: row.title,
     brandEmitter: row.brandEmitter,
@@ -90,6 +92,7 @@ export function dbToReference(row: ReferenceRow): Reference {
     assets: row.assets.map(dbToAsset),
     performance: {
       composite: row.performanceComposite,
+      compositeSource: row.performanceCompositeSource as NonNullable<Reference["performance"]["compositeSource"]>,
       primaryGoals: parseJsonArray<OperationGoal>(row.performancePrimaryGoalsJson),
       metrics: row.metrics.map(dbToMetric),
       overallAttribution: row.performanceOverallAttribution as AttributionConfidence,
@@ -160,6 +163,8 @@ function dbToAsset(row: ReferenceRow['assets'][number]): Asset {
     alt: row.alt ?? undefined,
     durationSec: row.durationSec ?? undefined,
     format: row.format ?? undefined,
+    sourceUrl: row.sourceUrl ?? undefined,
+    sourceLicense: row.sourceLicense ?? undefined,
     extractionMethod: (row.extractionMethod ?? undefined) as AssetExtractionMethod | undefined,
     derivedFromAssetId: row.derivedFromAssetId ?? undefined,
   };

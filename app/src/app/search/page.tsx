@@ -904,7 +904,7 @@ function ResultRow({ reference: r, query }: { reference: Reference; query: Parse
         {why && <p className="why">{why}</p>}
       </div>
       <div className="meta">
-        <div className="sc">{r.performance.composite}</div>
+        <div className="sc">{r.performance.composite ?? "—"}</div>
         <div className="sc-lab">Score</div>
         {top && <div className="victory">{VICTORY_LABELS[top]}</div>}
       </div>

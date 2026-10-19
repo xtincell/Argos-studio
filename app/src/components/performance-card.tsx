@@ -34,14 +34,15 @@ export function PerformanceCard({ reference, className }: PerformanceCardProps) 
             </p>
             <div className="mt-2 flex items-baseline gap-3">
               <span className="font-display text-5xl text-foreground">
-                {performance.composite}
+                {performance.composite ?? "Non mesuré"}
               </span>
-              <span className="text-sm text-muted-foreground">/100 composite</span>
+              {performance.composite !== null && <span className="text-sm text-muted-foreground">/100 composite</span>}
             </div>
           </div>
           <AttributionPill level={performance.overallAttribution} />
         </div>
-        <ScoreBar value={performance.composite} className="mt-4" />
+        {performance.composite !== null && <ScoreBar value={performance.composite} className="mt-4" />}
+        <p className="mt-3 text-xs text-muted-foreground">{performance.compositeSource === 'provided-by-researcher' ? 'Note déclarée par le chercheur' : performance.compositeSource === 'computed-from-metrics' ? 'Composite heuristique des métriques citées' : performance.compositeSource === 'not-measured' ? 'Aucune note ni mesure disponible' : 'Ancienne note : origine du calcul à qualifier'}</p>
         {performance.rationale && (
           <p className="mt-4 max-w-3xl text-sm text-foreground/90 leading-relaxed">
             {performance.rationale}

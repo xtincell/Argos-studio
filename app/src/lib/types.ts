@@ -207,6 +207,9 @@ export interface Asset {
   aspectRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '21:9' | '4:5';
   /** For TEXT kind (taglines, headlines, copy, manifestos), the actual content. */
   text?: string;
+  /** Citation and licensing posture supplied for this individual asset. */
+  sourceUrl?: string;
+  sourceLicense?: string;
   /** Editorial caption explaining what this asset is and where it ran. */
   caption?: string;
   /** Alt text for accessibility. */
@@ -309,7 +312,8 @@ export interface PerformanceMetric {
 
 export interface PerformanceScore {
   /** Composite 0-100 score, computed from metrics weighted by goal and attribution. */
-  composite: number;
+  composite: number | null;
+  compositeSource?: "provided-by-researcher" | "computed-from-metrics" | "not-measured" | "legacy-unqualified";
   /** Goals the operation primarily aimed to achieve, in order of weight. */
   primaryGoals: OperationGoal[];
   /** All recorded metrics, operation-level and asset-level. */
@@ -328,6 +332,9 @@ export function metricEvidenceKey(metric: PerformanceMetric): string {
 }
 
 export interface Reference {
+  /** Version of the canonical reference; supplied on amendments. */
+  updatedAt?: string;
+  hasSourceDossier?: boolean;
   id: string;
   slug: string;
   title: string;

@@ -4,7 +4,7 @@
 //
 // Used by the POST /api/v1/ingest/dossier route.
 
-import { prisma } from '@/lib/db';
+import { prisma, REFERENCE_INCLUDE } from '@/lib/db';
 import {
   dossierToReference,
   type ResearchDossier,
@@ -14,14 +14,15 @@ import {
 export interface IngestRecord {
   result: TransformResult;
   newlyCreated: boolean;
+  updatedAt: string;
 }
 
-export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRecord> {
+export async function ingestDossier(dossier: ResearchDossier, expectedUpdatedAt?: string): Promise<IngestRecord> {
   const result = dossierToReference(dossier);
   const ref = result.reference;
 
-  const newlyCreated = await prisma.$transaction(async (tx) => {
-    const existing = await tx.reference.findUnique({ where: { id: ref.id } });
+  const outcome = await prisma.$transaction(async (tx) => {
+    const existing = await tx.reference.findUnique({ where: { id: ref.id }, include: REFERENCE_INCLUDE });
     if (
       existing &&
       (existing.title !== ref.title ||
@@ -33,8 +34,17 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
         'IDENTITY_CONFLICT',
       );
     }
+    const retainedDossier = { ...dossier, researcher: { ...dossier.researcher, ...(dossier.researcher.contact === undefined && existing?.researcherContact ? { contact: existing.researcherContact } : {}) } };
+    const canonicalDossier = JSON.stringify(retainedDossier);
+    if (existing?.sourceDossierJson === canonicalDossier) {
+      return { newlyCreated: false, updatedAt: existing.updatedAt.toISOString() };
+    }
+    if (existing && existing.updatedAt.toISOString() !== expectedUpdatedAt) {
+      throw new IngestValidationError('La référence a une version existante. Rechargez le dossier avant de modifier.', 'VERSION_CONFLICT');
+    }
     // Upsert the Reference row
     const data = {
+      updatedAt: new Date(Math.max(Date.now(), existing ? existing.updatedAt.getTime() + 1 : 0)),
       slug: ref.slug,
       title: ref.title,
       brandEmitter: ref.brandEmitter,
@@ -54,21 +64,29 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
       summary: ref.summary,
       patternObservation: ref.patternObservation ?? null,
       significance: ref.significance ?? null,
-      performanceComposite: Math.round(ref.performance.composite),
+      performanceComposite: ref.performance.composite === null ? null : Math.round(ref.performance.composite),
+      performanceCompositeSource: ref.performance.compositeSource,
+      sourceDossierJson: canonicalDossier,
       performancePrimaryGoalsJson: JSON.stringify(ref.performance.primaryGoals),
       performanceOverallAttribution: ref.performance.overallAttribution,
       performanceRationale: ref.performance.rationale ?? null,
       ingestPath: 'manual-dossier',
       researcherName: dossier.researcher.name,
-      researcherContact: dossier.researcher.contact ?? null,
+      researcherContact: retainedDossier.researcher.contact ?? null,
       researcherToolUsed: dossier.researcher.toolUsed ?? null,
       researchDate: dossier.researchDate,
     };
-    await tx.reference.upsert({
-      where: { id: ref.id },
-      create: { id: ref.id, ...data },
-      update: data,
-    });
+    let updatedAt: string;
+    if (existing) {
+      await tx.referenceRevision.create({ data: { referenceId: ref.id, versionAt: existing.updatedAt, snapshotJson: JSON.stringify(existing) } });
+      const update = await tx.reference.updateMany({
+        where: { id: ref.id, updatedAt: existing.updatedAt }, data,
+      });
+      if (update.count !== 1) throw new IngestValidationError('La référence a changé. Rechargez-la avant de modifier.', 'VERSION_CONFLICT');
+      updatedAt = (await tx.reference.findUniqueOrThrow({ where: { id: ref.id } })).updatedAt.toISOString();
+    } else {
+      updatedAt = (await tx.reference.create({ data: { id: ref.id, ...data } })).updatedAt.toISOString();
+    }
 
     // Replace children atomically. Wipe-and-rewrite is fine because IDs are
     // deterministic from the dossier transform (slug-derived).
@@ -94,6 +112,8 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
           alt: a.alt,
           durationSec: a.durationSec,
           format: a.format,
+          sourceUrl: a.sourceUrl,
+          sourceLicense: a.sourceLicense,
           extractionMethod: a.extractionMethod,
           position: i,
         },
@@ -179,10 +199,10 @@ export async function ingestDossier(dossier: ResearchDossier): Promise<IngestRec
         },
       });
     }
-    return !existing;
+    return { newlyCreated: !existing, updatedAt };
   });
 
-  return { result, newlyCreated };
+  return { result, ...outcome };
 }
 
 // A typed error aborts Prisma's transaction before the route renders a refusal.

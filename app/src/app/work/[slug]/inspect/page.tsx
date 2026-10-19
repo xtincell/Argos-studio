@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type React from 'react';
 import { notFound } from 'next/navigation';
 import { WorkViewTabs } from '@/components/work-view-tabs';
-import { getAllReferences, getReferenceBySlug } from '@/lib/library';
+import { getReferenceBySlug } from '@/lib/library';
 import {
   type Asset,
   type AttributionConfidence,
@@ -13,12 +13,11 @@ import {
   metricEvidenceKey,
 } from '@/lib/types';
 
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
+
 interface InspectPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await getAllReferences()).map((r) => ({ slug: r.slug }));
 }
 
 export async function generateMetadata({ params }: InspectPageProps): Promise<Metadata> {

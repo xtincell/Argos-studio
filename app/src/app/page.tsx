@@ -30,7 +30,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
 
   // Featured = highest composite score
   const featured =
-    [...all].sort((a, b) => b.performance.composite - a.performance.composite)[0] ?? all[0];
+    [...all].sort((a, b) => (b.performance.composite ?? -1) - (a.performance.composite ?? -1))[0] ?? all[0];
   // Show all other references as secondary cards — diversity by brand first,
   // then by composite score within each brand. Keeps Patagonia/Apple/Nike
   // visible even when their composite scores trail mocked references.
@@ -40,7 +40,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
       others = others.filter(filterPredicate);
     }
     const byBrand = new Map<string, Reference[]>();
-    for (const r of others.sort((a, b) => b.performance.composite - a.performance.composite)) {
+    for (const r of others.sort((a, b) => (b.performance.composite ?? -1) - (a.performance.composite ?? -1))) {
       const list = byBrand.get(r.brandEmitter) ?? [];
       list.push(r);
       byBrand.set(r.brandEmitter, list);
@@ -82,7 +82,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
   const cultIndexAvg =
     cultMetrics.length > 0
       ? Math.round(cultMetrics.reduce((s, m) => s + m.value, 0) / cultMetrics.length)
-      : Math.round(all.reduce((s, r) => s + r.performance.composite, 0) / Math.max(1, all.length));
+      : null;
 
   const distinctPatterns = new Set(all.map((r) => r.patternKind)).size;
 
@@ -252,7 +252,7 @@ function Hero({
         {featured && (
           <>
             <div className="float f3" style={{ zIndex: 1 }}>
-              <span className="d" aria-hidden /> Score d'imitabilité · {featured.performance.composite}/100
+              <span className="d" aria-hidden /> Score composite · {featured.performance.composite === null ? "Non mesuré" : `${featured.performance.composite}/100`}
             </div>
             <div className="float f2" style={{ zIndex: 1, maxWidth: 280 }}>
               <div className="t">
@@ -507,7 +507,7 @@ function Bento({
   totalSectors: number;
   totalSources: number;
   topSales?: { ref: Reference; metric: { value: number; displayValue?: string; source: string } };
-  cultIndexAvg: number;
+  cultIndexAvg: number | null;
   distinctPatterns: number;
   decadeDistribution: { label: number; count: number; height: number }[];
 }) {
@@ -529,7 +529,7 @@ function Bento({
       <article className="b-card c-stat dark">
         <div className="k">Indice culte moyen</div>
         <div className="big">
-          {cultIndexAvg}
+          {cultIndexAvg ?? "—"}
           <span className="u">/100</span>
         </div>
         <div className="sub">
@@ -627,7 +627,7 @@ function SecondaryCard({ reference, index }: { reference: Reference; index: numb
       <div className="desc">{shorten(reference.summary, 180)}</div>
       <div className="foot">
         <div className="score">
-          {score}
+          {score ?? "—"}
           <span className="lab">Score</span>
         </div>
         <div className="perf">

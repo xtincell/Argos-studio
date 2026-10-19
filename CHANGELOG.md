@@ -1,5 +1,19 @@
 # Changelog Argos
 
+## 0.2.0 — 2026-10-19
+
+Parcours manuel de référence : lecture canonique, correction avec version attendue,
+révision précédente et export du dossier sourcé. Le POST exige le Bearer de la
+bibliothèque avant parsing. Les actifs gardent citation et licence ; le contact
+privé du chercheur reste absent des exports publics. Une performance non mesurée
+reste inconnue, et le lecteur n’invente plus de récit à partir de champs absents.
+Les routes de données lisent les nouvelles références après le build.
+
+Validation : 20 tests de contrat, migration peuplée, typage, lint et contrôle du
+serveur construit ; usage natif isolé sur une référence publique SPAWT. La release
+complète, les consultations privées et le déploiement TPE restent ouverts.
+
+
 ## App 0.1.2 — 2026-10-07
 
 - Aperçus en dialogue natif, recherche/séparateur sémantiques, score accessible

@@ -4,20 +4,23 @@
 
 Argos est un répertoire éditorial de patterns créatifs gagnants, exploitable comme moteur de recherche public ou via API/MCP pour les systèmes IA.
 
-La bibliothèque et l’admission manuelle sont matérialisées ; l’accès MCP,
-l’authentification et la séparation des consultations privées restent à recevoir.
+La bibliothèque et son parcours manuel conservent des opérations, leurs actifs, leurs analyses et leurs sources. La clé d’admission protège les écritures ; comptes Auth.js, accès MCP et séparation des consultations privées restent à recevoir.
 L’[état de réception](docs/RECEPTION-INTEGRITE.md) distingue le code, ses tests
 et les parcours effectivement éprouvés. Les personas décrivent des responsabilités
 spécialisées ; leur présence ne prouve pas des agents actifs.
 
 ## Quick start
 
-Requires Node 20+. npm ships with Node; pnpm is optional.
+Node 22 est recommandé pour le runtime et requis pour la suite de réception. npm ships with Node; pnpm is optional.
 
 ```bash
 cd app
 npm install         # or: pnpm install
-cp .env.example .env.local
+cp .env.example .env
+# Configurer ARGOS_INGEST_API_KEY (24 caractères minimum) pour les écritures.
+# Initialisation de l’exemple SQLite local uniquement, sans écraser un fichier existant :
+node -e "const fs=require('node:fs');if(!fs.existsSync('prisma/dev.db'))fs.writeFileSync('prisma/dev.db','',{flag:'wx',mode:0o600})"
+npx prisma migrate deploy
 npm run dev         # or: pnpm dev
 ```
 

@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
-import { getReferencesByAgency, listAgencies, slugify } from '@/lib/library';
+import { getReferencesByAgency, slugify } from '@/lib/library';
+
+// Canonical library data changes after admission; never freeze its identities at build time.
+export const dynamic = 'force-dynamic';
 
 interface AgencyPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  return (await listAgencies()).map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({ params }: AgencyPageProps): Promise<Metadata> {

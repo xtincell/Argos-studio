@@ -17,7 +17,6 @@ import { z } from 'zod';
 import type {
   Asset,
   AssetExtractionMethod,
-  ConfidenceLevel,
   PerformanceScore,
   Reference,
   StructuralAxis,
@@ -140,7 +139,7 @@ export const ResearchFiliationSchema = z.object({
 /* -------------------------------------------------------------------------- */
 
 export const ResearchSourceSchema = z.object({
-  url: z.string().url(),
+  url: z.string().url().refine(value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password; } catch { return false; } }, 'Une URL HTTP(S) sans identifiants est requise.'),
   title: z.string().min(1),
   publisher: z.string().optional(),
   /** YYYY-MM-DD */
@@ -367,7 +366,7 @@ export interface TransformResult {
   audit: {
     generatedSlug: string;
     generatedAssetIds: string[];
-    compositeScoreSource: 'provided-by-researcher' | 'computed-from-metrics';
+    compositeScoreSource: 'provided-by-researcher' | 'computed-from-metrics' | 'not-measured';
     sourcesCount: number;
     notes: string[];
   };
@@ -398,6 +397,8 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
       durationSec: a.durationSec,
       format: a.format,
       extractionMethod,
+      sourceUrl: a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.url,
+      sourceLicense: a.sourceLicense ?? (a.sourceIndex === undefined ? undefined : dossier.sources[a.sourceIndex]?.license),
     };
   });
 
@@ -449,7 +450,7 @@ export function dossierToReference(dossier: ResearchDossier): TransformResult {
       compositeScoreSource:
         dossier.performance.composite !== undefined
           ? 'provided-by-researcher'
-          : 'computed-from-metrics',
+          : performance.composite === null ? 'not-measured' : 'computed-from-metrics',
       sourcesCount: dossier.sources.length,
       notes: [
         `${dossier.assets.length} assets in bundle`,
@@ -492,7 +493,7 @@ function buildPerformanceScore(
   const composite =
     dossier.performance.composite !== undefined
       ? dossier.performance.composite
-      : computeComposite(metrics, dossier.confidence);
+      : computeComposite(metrics);
 
   // Primary goals : researcher-provided or fall back to all classification.operationGoals
   const primaryGoals =
@@ -506,6 +507,8 @@ function buildPerformanceScore(
 
   return {
     composite,
+    compositeSource: dossier.performance.composite !== undefined
+      ? 'provided-by-researcher' : composite === null ? 'not-measured' : 'computed-from-metrics',
     primaryGoals,
     metrics,
     overallAttribution,
@@ -513,19 +516,10 @@ function buildPerformanceScore(
   };
 }
 
-function computeComposite(
-  metrics: PerformanceScore['metrics'],
-  declaredConfidence: ConfidenceLevel,
-): number {
+function computeComposite(metrics: PerformanceScore['metrics']): number | null {
   // Very rough composite: weight by attribution strength, clamp 0-100
   if (metrics.length === 0) {
-    const fallback: Record<ConfidenceLevel, number> = {
-      HIGH: 70,
-      MEDIUM: 55,
-      LOW: 40,
-      ESTIMATED: 30,
-    };
-    return fallback[declaredConfidence];
+    return null;
   }
 
   // Normalize each metric to a 0-100 score (very heuristic — production will use a proper model)
