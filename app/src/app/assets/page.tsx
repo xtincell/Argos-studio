@@ -101,6 +101,7 @@ export default async function AssetsSearchPage({ searchParams }: AssetsPageProps
               aria-label="Recherche d'assets"
               style={{
                 flex: 1,
+                minWidth: 0,
                 background: 'var(--paper)',
                 border: '1px solid var(--line)',
                 borderRadius: 14,
@@ -108,7 +109,6 @@ export default async function AssetsSearchPage({ searchParams }: AssetsPageProps
                 fontSize: 14,
                 fontFamily: 'inherit',
                 color: 'var(--ink)',
-                outline: 'none',
               }}
             />
             {/* Preserve filters when re-searching */}

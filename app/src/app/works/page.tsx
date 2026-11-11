@@ -48,11 +48,23 @@ export default async function WorksPage({ searchParams }: WorksPageProps) {
           </div>
         </header>
 
-        <div className="search-results">
-          {refs.map((r) => (
-            <WorkRow key={r.id} reference={r} />
-          ))}
-        </div>
+        {refs.length === 0 ? (
+          <div className="empty-results">
+            <h2>
+              Aucune opération <span className="serif">indexée</span> pour l’instant.
+            </h2>
+            <p>
+              La bibliothèque est vide : aucune référence n’a encore été admise. Un dossier de
+              recherche peut être soumis via <Link href="/admin/ingest">l’ingestion manuelle</Link>.
+            </p>
+          </div>
+        ) : (
+          <div className="search-results">
+            {refs.map((r) => (
+              <WorkRow key={r.id} reference={r} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -193,6 +193,7 @@ function FacetGroup({
               padding: 14,
               textDecoration: 'none',
               minHeight: 80,
+              whiteSpace: 'normal',
               background: 'var(--bg-2)',
               border: '1px solid var(--line-soft)',
               borderRadius: 14,

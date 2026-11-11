@@ -2,7 +2,7 @@
 
 import { TrendingUp, X } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { AssetLayout } from './asset-layout';
 import { Badge } from './ui/badge';
 import {
@@ -36,6 +36,15 @@ interface AssetGalleryProps {
 
 export function AssetGallery({ assets, reference, className }: AssetGalleryProps) {
   const [focusedAsset, setFocusedAsset] = useState<Asset | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+
+  // When the preview closes, focus returns to the thumbnail that opened it.
+  useEffect(() => {
+    if (focusedAsset || !opener.current) return;
+    const element = opener.current;
+    opener.current = null;
+    if (element.isConnected) element.focus();
+  }, [focusedAsset]);
 
   if (assets.length === 0) return null;
 
@@ -48,9 +57,13 @@ export function AssetGallery({ assets, reference, className }: AssetGalleryProps
             <button
               key={asset.id}
               type="button"
-              onClick={() => setFocusedAsset(asset)}
-              className="group flex flex-col gap-2 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
-              aria-label={`Open ${asset.caption ?? asset.kind}`}
+              onClick={(event) => {
+                opener.current = event.currentTarget;
+                setFocusedAsset(asset);
+              }}
+              className="group flex flex-col gap-2 text-left transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 rounded-lg"
+              aria-haspopup="dialog"
+              aria-label={`Ouvrir l’aperçu : ${asset.caption ?? asset.kind}`}
             >
               <div className="relative w-full">
                 <ThumbForAsset asset={asset} />
@@ -188,6 +201,8 @@ function ThumbForAsset({ asset }: { asset: Asset }) {
   );
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, iframe, audio[controls], video[controls], [tabindex]:not([tabindex="-1"])';
+
 function Lightbox({
   asset,
   metrics,
@@ -203,25 +218,48 @@ function Lightbox({
     element?.showModal();
     return () => { if (element?.open) element.close(); };
   }, []);
+  // Captured before the content stops propagation: Tab cycles inside the dialog, Escape closes it.
+  const onKeyDownCapture = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab' || !dialog.current) return;
+    const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+      .filter((element) => element.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !dialog.current.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !dialog.current.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
   return (
     <dialog
       ref={dialog}
-      aria-label={asset.caption ?? 'Asset preview'}
+      aria-label={`Aperçu : ${asset.caption ?? asset.kind}`}
       className="fixed inset-0 z-50 m-0 flex h-dvh w-screen max-h-none max-w-none items-center justify-center border-0 bg-background/95 p-4 backdrop-blur-md animate-fade-in"
       onClick={onClose}
       onKeyDown={(event) => {
         if (event.key === 'Escape') { event.preventDefault(); onClose(); }
       }}
-      onCancel={onClose}
+      onKeyDownCapture={onKeyDownCapture}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
     >
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        aria-label="Close preview"
+        className="absolute right-4 top-4 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+        aria-label="Fermer l’aperçu"
       >
-        <X className="h-4 w-4" />
-        Close
+        <X className="h-4 w-4" aria-hidden />
+        Fermer
       </button>
       <div
         className="flex max-h-full max-w-5xl flex-col gap-4 overflow-auto"

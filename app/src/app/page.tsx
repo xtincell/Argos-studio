@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { FreshTime } from '@/components/fresh-time';
+import { latestTimestamp } from '@/lib/freshness';
 import { countResearchSources, getAllAssets, getAllReferences, listBrands, listSectors } from '@/lib/library';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import { getHeroAsset, type Asset, type AssetFunction, type Reference } from '@/lib/types';
@@ -141,7 +143,13 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
   return (
     <section className="view" data-view="discover">
       <div className="wrap">
-        <Hero featured={featured} totalRefs={totalRefs} totalAssets={totalAssets} yearsCovered={yearsCovered} />
+        <Hero
+          featured={featured}
+          totalRefs={totalRefs}
+          totalAssets={totalAssets}
+          yearsCovered={yearsCovered}
+          lastUpdate={latestTimestamp(all.map((r) => r.updatedAt))}
+        />
         <FeaturedAssets items={featuredAssets} />
         <FilterRow
           total={totalRefs}
@@ -171,11 +179,13 @@ function Hero({
   totalRefs,
   totalAssets,
   yearsCovered,
+  lastUpdate,
 }: {
   featured?: Reference;
   totalRefs: number;
   totalAssets: number;
   yearsCovered: number;
+  lastUpdate: string | null;
 }) {
   const hero = featured ? getHeroAsset(featured) : undefined;
   const heroImage = featured ? pickImageAsset(featured) : undefined;
@@ -195,6 +205,7 @@ function Hero({
         </h1>
         <p className="deck">
           <b>{totalRefs} dossiers</b>, <b>{totalAssets} assets</b>. Sources vérifiables, métriques sourcées. À lire, à fouiller, à copier.
+          <FreshTime value={lastUpdate} prefix=" Dernière mise à jour de la bibliothèque le" className="deck-date" />
         </p>
         <form action="/assets" method="get" className="search">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -246,7 +257,7 @@ function Hero({
             <span className="sp" style={{ color: '#fff' }}>✦</span> À la une
           </span>
           <span className="pill">
-            {featured?.brandEmitter ?? '—'} · {featured?.emissionYear ?? '—'}
+            {featured ? `${featured.brandEmitter} · ${featured.emissionYear}` : 'Aucun dossier admis pour l’instant'}
           </span>
         </div>
         {featured && (

@@ -270,7 +270,7 @@ function FacetGrid<T extends string | number>({
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 12, color: 'var(--ink-3)', fontStyle: 'italic' }}>
-        Nothing indexed yet. The crawler will fill in as it runs.
+        Rien d’indexé pour l’instant : aucune référence admise ne porte encore cette dimension.
       </p>
     );
   }

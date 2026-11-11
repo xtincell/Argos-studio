@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type React from 'react';
 import { notFound } from 'next/navigation';
+import { FreshTime } from '@/components/fresh-time';
 import { WorkViewTabs } from '@/components/work-view-tabs';
 import { getReferenceBySlug } from '@/lib/library';
 import {
@@ -91,6 +92,12 @@ function SpecTop({ reference, hero }: { reference: Reference; hero?: Asset }) {
           {titleHead} <span className="serif">{titleTail}</span>
         </h1>
         <p className="deck">{reference.summary}</p>
+        {(reference.researchDate || reference.updatedAt) && (
+          <p className="mono doss-dates">
+            <FreshTime value={reference.researchDate} prefix="Dossier documenté le" />
+            <FreshTime value={reference.updatedAt} prefix="Mis à jour le" />
+          </p>
+        )}
         <div className="meta">
           <div className="m">
             <div className="k">Marque</div>
@@ -229,6 +236,7 @@ function PerfBento({ reference }: { reference: Reference }) {
             <div className="src">
               <b>{m.source.split(' ').slice(0, 3).join(' ')}</b>{' '}
               {m.source.split(' ').slice(3).join(' ')}
+              <FreshTime value={m.measuredAtYearMonth} prefix=" · mesuré en" />
             </div>
           </div>
         );
@@ -286,7 +294,8 @@ function SourcesCard({ reference }: { reference: Reference }) {
             </a>
             <span className="pub">
               {s.publisher ?? ''}
-              {s.publishedDate ? ` · ${s.publishedDate}` : ''}
+              <FreshTime value={s.publishedDate} prefix=" · publié le" />
+              <FreshTime value={s.accessedDate} prefix=" · consulté le" />
             </span>
             {s.excerpt ? <span className="ex">« {s.excerpt} »</span> : null}
           </div>
