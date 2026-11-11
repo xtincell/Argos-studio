@@ -65,3 +65,14 @@ jobs:
       # Interface receipt on the built server: errors, keyboard/focus, 390 px, freshness.
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
+  # Container image for the owner's VPS (arbitrage 5.8): built, then received on a volume:
+  # public reads, single administration key, library kept across restart and recreation.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: docker build --build-arg NEXT_PUBLIC_SITE_URL=https://argos.example.org -t argos-studio:ci .
+      - run: docker/recette.sh argos-studio:ci argos-ci- 3990
