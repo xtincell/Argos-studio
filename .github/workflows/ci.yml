@@ -62,3 +62,6 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run build
       - run: node tests/production-flow.mjs
+      # Interface receipt on the built server: errors, keyboard/focus, 390 px, freshness.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
