@@ -288,6 +288,25 @@ function Lightbox({
             </Badge>
           </div>
         </div>
+        {/* Provenance of this asset, as declared; an absence is said, never filled. */}
+        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+          <div>
+            <dt className="inline">Licence déclarée : </dt>
+            <dd className="inline text-foreground">{asset.sourceLicense ?? 'À qualifier'}</dd>
+          </div>
+          <div className="min-w-0 break-all">
+            <dt className="inline">Source de l’actif : </dt>
+            <dd className="inline text-foreground">
+              {asset.sourceUrl ? (
+                <a href={asset.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                  {asset.sourceUrl}
+                </a>
+              ) : (
+                'À documenter'
+              )}
+            </dd>
+          </div>
+        </dl>
         {metrics.length > 0 && (
           <div className="rounded-md border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
