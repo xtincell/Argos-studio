@@ -12,7 +12,7 @@ writeFileSync(join(directory, 'receipt.db'), '');
 process.env.DATABASE_URL = `file:${join(directory, 'receipt.db')}`;
 const { prisma, dbToReference, REFERENCE_INCLUDE } = await import('../src/lib/db');
 const { ingestDossier } = await import('../src/server/ingest');
-process.env.ARGOS_INGEST_API_KEY = 'synthetic-editorial-library-receipt-key-20261019';
+process.env.ARGOS_ADMIN_KEY = 'synthetic-editorial-library-receipt-key-20261019';
 const { POST } = await import('../src/app/api/v1/ingest/dossier/route');
 const { NextRequest } = await import('next/server');
 const { GET: listReferences } = await import('../src/app/api/v1/references/route');
@@ -137,7 +137,7 @@ test('an unresolved filiation returns 422 and rolls back every part of the dossi
     new NextRequest('http://argos.example.test/api/v1/ingest/dossier', {
       method: 'POST',
       body: JSON.stringify(input),
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.ARGOS_INGEST_API_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.ARGOS_ADMIN_KEY}` },
     }),
   );
   assert.equal(response.status, 422);
@@ -269,15 +269,15 @@ test('version refusal, immutable previous snapshot and public dossier return pre
 
 test('write access is checked before parsing and rejected requests have no data effect', async () => {
   const before = await prisma.reference.count();
-  const key = process.env.ARGOS_INGEST_API_KEY;
+  const key = process.env.ARGOS_ADMIN_KEY;
   const request = (headers: Record<string, string> = {}) => new NextRequest('http://localhost/api/v1/ingest/dossier', { method: 'POST', headers, body: 'invalid-json' });
   assert.equal((await POST(request())).status, 401);
   assert.equal((await POST(request({ Authorization: 'Bearer wrong-synthetic-key' }))).status, 401);
   assert.equal((await POST(request({ Authorization: `Bearer ${key}`, Origin: 'https://foreign.example.test' }))).status, 403);
   try {
-    process.env.ARGOS_INGEST_API_KEY = '';
+    process.env.ARGOS_ADMIN_KEY = '';
     assert.equal((await POST(request())).status, 503);
-  } finally { process.env.ARGOS_INGEST_API_KEY = key; }
+  } finally { process.env.ARGOS_ADMIN_KEY = key; }
   assert.equal(await prisma.reference.count(), before);
 });
 

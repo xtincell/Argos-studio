@@ -1,0 +1,22 @@
+# Build context of the root Dockerfile: the application only, never a local secret or library.
+.git
+.github
+docs
+personas
+workers
+**/node_modules
+**/.next
+**/.turbo
+**/.vercel
+**/.env
+**/.env.*
+**/*.db
+**/*.db-journal
+**/*.sqlite
+**/*.sqlite-journal
+**/.argos-store
+**/coverage
+**/test-results
+**/playwright-report
+**/*.log
+app/tsconfig.tsbuildinfo

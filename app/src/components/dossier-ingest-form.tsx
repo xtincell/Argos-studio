@@ -24,7 +24,7 @@ type SubmitState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
   | { kind: 'success'; slug: string; assetCount: number }
-  | { kind: 'error'; failure: Failure; offerReload: boolean };
+  | { kind: 'error'; failure: Failure; offerReload: boolean; offerLogin: boolean };
 
 /** State of the requests that fill the editor (current dossier, example, template, file). */
 type Notice =
@@ -41,7 +41,6 @@ function plainFailure(message: string): Failure {
 export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
   const inputId = useId();
   const [json, setJson] = useState('');
-  const [credential, setCredential] = useState('');
   const [expectedVersion, setExpectedVersion] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const mounted = useRef(true);
@@ -147,33 +146,35 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
   }, [validation]);
 
   async function handleSubmit() {
-    if (!validation?.ok || !validation.dossier || credential.length < 24) return;
+    if (!validation?.ok || !validation.dossier) return;
     const action = 'Envoi du dossier';
     setSubmitState({ kind: 'submitting' });
     let res: Response;
     try {
       res = await fetch('/api/v1/ingest/dossier', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${credential}`, ...(expectedVersion ? { 'If-Match': expectedVersion } : {}) },
+        // The administration session travels as an HttpOnly cookie; the key never reaches this page.
+        headers: { 'Content-Type': 'application/json', ...(expectedVersion ? { 'If-Match': expectedVersion } : {}) },
+        credentials: 'same-origin',
         body: json,
       });
     } catch {
-      setSubmitState({ kind: 'error', failure: describeNetworkFailure(action), offerReload: false });
+      setSubmitState({ kind: 'error', failure: describeNetworkFailure(action), offerReload: false, offerLogin: false });
       return;
     }
     if (!res.ok) {
-      setSubmitState({ kind: 'error', failure: await describeResponseFailure(action, res), offerReload: res.status === 409 });
+      setSubmitState({ kind: 'error', failure: await describeResponseFailure(action, res), offerReload: res.status === 409, offerLogin: res.status === 401 });
       return;
     }
     let data: { ok?: boolean; slug?: string; assetCount?: number; updatedAt?: string; message?: string };
     try {
       data = await res.json();
     } catch {
-      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : la réponse du serveur (HTTP ${res.status}) est illisible. Rechargez la référence pour vérifier si elle a été enregistrée.`), offerReload: true });
+      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : la réponse du serveur (HTTP ${res.status}) est illisible. Rechargez la référence pour vérifier si elle a été enregistrée.`), offerReload: true, offerLogin: false });
       return;
     }
     if (!data.ok || !data.slug) {
-      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : ${data.message ?? 'le serveur n’a pas confirmé l’enregistrement.'}`), offerReload: true });
+      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : ${data.message ?? 'le serveur n’a pas confirmé l’enregistrement.'}`), offerReload: true, offerLogin: false });
       return;
     }
     setExpectedVersion(data.updatedAt ? JSON.stringify(data.updatedAt) : null);
@@ -289,10 +290,6 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
 
         {notice && <NoticeDisplay notice={notice} />}
 
-        <label className="block text-sm">Clé d’admission de cette bibliothèque
-          <input type="password" autoComplete="off" value={credential} onChange={e => setCredential(e.target.value)} className={cn('mt-1 block w-full rounded border border-border bg-card p-2', MOBILE_TARGET)} />
-          <span className="text-xs text-muted-foreground">Conservée dans cet écran uniquement. La lecture et la prévisualisation restent disponibles sans clé.</span>
-        </label>
         <textarea
           id={inputId}
           value={json}
@@ -321,7 +318,7 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
                 size="lg"
                 className={MOBILE_TARGET}
                 onClick={handleSubmit}
-                disabled={submitState.kind === 'submitting' || credential.length < 24}
+                disabled={submitState.kind === 'submitting'}
                 aria-busy={submitState.kind === 'submitting'}
               >
                 {submitState.kind === 'submitting' ? (
@@ -333,9 +330,6 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
                   <>Soumettre le dossier</>
                 )}
               </Button>
-              {credential.length < 24 && (
-                <span className="text-xs text-muted-foreground">Saisissez la clé d’admission pour soumettre.</span>
-              )}
             </div>
             <output className="mt-3 block">
               {submitState.kind === 'success' && (
@@ -349,6 +343,12 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
             </output>
             {submitState.kind === 'error' && (
               <FailureDisplay failure={submitState.failure}>
+                {submitState.offerLogin && (
+                  // A new tab keeps the dossier typed here; once the session is open, submit again.
+                  <a className="underline" target="_blank" rel="noopener noreferrer" href={`/admin/login?${new URLSearchParams({ next: '/admin/ingest' }).toString()}`}>
+                    Rouvrir la session dans un nouvel onglet (le dossier reste ici)
+                  </a>
+                )}
                 {submitState.offerReload && (
                   <a className="underline" href={`/admin/ingest?slug=${encodeURIComponent(transform.reference.slug)}`}>
                     Charger le dossier actuel

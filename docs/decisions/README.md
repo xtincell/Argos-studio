@@ -78,8 +78,9 @@ Decision-makers: [Daedalus, Hephaistos, ...]
 | 0001 | Stack technique principale | Accepted | 2026-05-12 |
 | 0002 | Modèles LLM par défaut | Accepted | 2026-05-12 |
 | 0003 | Fournisseur d'embeddings | Accepted | 2026-05-12 |
-| 0004 | Hosting et infra | Accepted | 2026-05-12 |
-| 0005 | Stratégie d'authentification | Accepted | 2026-05-12 |
+| 0004 | Hosting et infra | Superseded by ADR-0009 | 2026-05-12 |
+| 0005 | Stratégie d'authentification | Superseded by ADR-0009 | 2026-05-12 |
 | 0006 | Architecture dual-face stricte | Accepted | 2026-05-12 |
 | 0007 | Taxonomie verrouillée pour v1 | Accepted | 2026-05-12 |
 | 0008 | Two-layer crawling — source crawlers + brand watch agents | Accepted | 2026-05-12 |
+| 0009 | VPS du propriétaire, SQLite sur volume et clé unique d’administration | Accepted | 2026-11-11 |

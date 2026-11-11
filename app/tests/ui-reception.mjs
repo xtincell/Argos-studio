@@ -35,8 +35,10 @@ async function freePort() {
 
 before(async () => {
   const port = await freePort();
-  origin = `http://127.0.0.1:${port}`;
-  const env = { ...process.env, DATABASE_URL: `file:${database}`, ARGOS_INGEST_API_KEY: key,
+  // `localhost`, not 127.0.0.1: Next names every loopback address `localhost` in middleware
+  // redirects, and the administration session cookie belongs to one host name.
+  origin = `http://localhost:${port}`;
+  const env = { ...process.env, DATABASE_URL: `file:${database}`, ARGOS_ADMIN_KEY: key,
     NEXT_PUBLIC_SITE_URL: origin, ANTHROPIC_API_KEY: '', VOYAGE_API_KEY: '', NEXT_TELEMETRY_DISABLED: '1' };
   await writeFile(database, '');
   execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'deploy'], { env, stdio: 'pipe' });
@@ -66,9 +68,24 @@ after(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
-/** A page whose network is confined to the owned origin. */
-async function openPage(viewport = { width: 1280, height: 900 }) {
+let adminSession;
+/** One administration session, opened through the real login route with the single key. */
+async function adminCookie() {
+  if (adminSession) return adminSession;
+  const response = await fetch(`${origin}/api/admin/login`, { method: 'POST', redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: origin }, body: new URLSearchParams({ key, next: '/admin/ingest' }) });
+  assert.equal(response.status, 303);
+  adminSession = /argos_admin=([^;]+)/.exec(response.headers.get('set-cookie') ?? '')?.[1];
+  assert.ok(adminSession, 'The login route must open a session.');
+  return adminSession;
+}
+
+/** A page whose network is confined to the owned origin; `admin` carries an open session. */
+async function openPage(viewport = { width: 1280, height: 900 }, { admin = false } = {}) {
   const context = await browser.newContext({ viewport, locale: 'fr-FR', timezoneId: 'Africa/Abidjan' });
+  if (admin) {
+    await context.addCookies([{ name: 'argos_admin', value: await adminCookie(), url: origin, httpOnly: true, secure: true, sameSite: 'Strict' }]);
+  }
   await context.route('**/*', (route) => {
     const url = route.request().url();
     if (url.startsWith(`${origin}/_next/image`)) return route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL });
@@ -148,6 +165,41 @@ test('admission du corpus de recette (seed du dépôt et dossier synthétique)',
 });
 
 // ---------------------------------------------------------------------------------------------
+// Administration: single key, signed session, nothing rendered without it.
+
+test('l’administration s’ouvre par la clé unique, reste fermée sans elle et se referme', async () => {
+  const page = await openPage();
+  try {
+    // A client-side navigation from the public site meets the same gate.
+    await visit(page, '/route-absente');
+    await content(page).locator('a[href="/admin/ingest"]').first().click();
+    await page.waitForURL(/\/admin\/login\?next=%2Fadmin%2Fingest/);
+    await page.getByRole('heading', { name: /Ouvrir une session/ }).waitFor();
+    await visit(page, `/admin/ingest?slug=${corpus.slug}`);
+    assert.equal(new URL(page.url()).pathname, '/admin/login', 'Without session the admission is not rendered.');
+    assert.equal(await page.getByRole('button', { name: 'Soumettre le dossier' }).count(), 0);
+    await page.locator(`${C} input[type="password"]`).fill('wrong-synthetic-ui-key-000000000');
+    await page.getByRole('button', { name: 'Ouvrir la session' }).click();
+    await page.waitForURL(/\/admin\/login\?erreur=cle/);
+    assert.match(await alertText(page), /clé d’administration est refusée/);
+    await page.locator(`${C} input[type="password"]`).fill(key);
+    await page.getByRole('button', { name: 'Ouvrir la session' }).click();
+    await page.waitForURL(`${origin}/admin/ingest?slug=${corpus.slug}`);
+    await waitFor(page, (title) => document.querySelector('textarea')?.value.includes(title), 'Synthetic interface receipt',
+      'The session returns to the requested dossier.');
+    assert.equal(await page.evaluate(() => document.cookie.includes('argos_admin')), false, 'The session is not readable by scripts.');
+    const [cookie] = (await page.context().cookies(origin)).filter((item) => item.name === 'argos_admin');
+    assert.deepEqual([cookie.httpOnly, cookie.secure, cookie.sameSite], [true, true, 'Strict']);
+    assert.equal(cookie.value.includes(key), false);
+    await page.getByRole('button', { name: 'Fermer la session' }).click();
+    await page.waitForURL(/\/admin\/login\?sortie=1/);
+    assert.match(await content(page).innerText(), /Session fermée/);
+    await visit(page, '/admin/ingest');
+    assert.equal(new URL(page.url()).pathname, '/admin/login', 'A closed session no longer opens the admission.');
+  } finally { await page.close(); }
+});
+
+// ---------------------------------------------------------------------------------------------
 // Mobile 390 px.
 
 const MOBILE = { width: 390, height: 844 };
@@ -161,12 +213,14 @@ function routes() {
 }
 
 test('à 390 px, aucune page ne défile horizontalement et aucun contenu n’est masqué pour y parvenir', async () => {
-  const page = await openPage(MOBILE);
+  const page = await openPage(MOBILE, { admin: true });
+  const anonymous = await openPage(MOBILE);
   const offenders = [];
   try {
-    for (const route of routes()) {
-      await visit(page, route);
-      const report = await page.evaluate(() => {
+    const visits = [...routes().map((route) => [page, route]), [anonymous, '/admin/login'], [anonymous, '/admin/login?erreur=cle']];
+    for (const [tab, route] of visits) {
+      await visit(tab, route);
+      const report = await tab.evaluate(() => {
         const width = document.documentElement.clientWidth;
         const masked = ['html', 'body'].filter((tag) => ['hidden', 'clip'].includes(getComputedStyle(document.querySelector(tag)).overflowX));
         const outside = [];
@@ -191,7 +245,7 @@ test('à 390 px, aucune page ne défile horizontalement et aucun contenu n’est
         offenders.push(`${route} → ${report.scrollWidth}/${report.width} masqué:${report.masked.join(',') || '-'} ${report.outside.join(' ')}`);
       }
     }
-  } finally { await page.close(); }
+  } finally { await page.close(); await anonymous.close(); }
   assert.deepEqual(offenders, []);
 });
 
@@ -211,7 +265,8 @@ async function targetSizes(page, locators) {
 }
 
 test('à 390 px, les commandes principales sont visibles et mesurent au moins 44 px', async () => {
-  const page = await openPage(MOBILE);
+  const page = await openPage(MOBILE, { admin: true });
+  const anonymous = await openPage(MOBILE);
   const small = [];
   try {
     await visit(page, '/');
@@ -252,8 +307,13 @@ test('à 390 px, les commandes principales sont visibles et mesurent au moins 44
       ['copier le modèle', page.getByRole('button', { name: /Copier le (modèle|template)/ })],
       ['télécharger le modèle', page.getByRole('link', { name: /Télécharger le (modèle|template)/ })],
       ['importer un fichier', page.locator(`${C} label:has(input[type="file"])`)],
-      ['clé d’admission', page.locator(`${C} input[type="password"]`)],
       ['soumettre', page.getByRole('button', { name: 'Soumettre le dossier' })],
+      ['fermer la session', page.getByRole('button', { name: 'Fermer la session' })],
+    ]));
+    await visit(anonymous, '/admin/login');
+    small.push(...await targetSizes(anonymous, [
+      ['clé d’administration', anonymous.locator(`${C} input[type="password"]`)],
+      ['ouvrir la session', anonymous.getByRole('button', { name: 'Ouvrir la session' })],
     ]));
     await visit(page, '/route-absente');
     small.push(...await targetSizes(page, [['actions 404', page.locator(`${C} a.pill`)]]));
@@ -262,7 +322,7 @@ test('à 390 px, les commandes principales sont visibles et mesurent au moins 44
       ['email', page.locator(`${C} input[type="email"]`)],
       ['inscription', page.locator(`${C} button[type="submit"]`)],
     ]));
-  } finally { await page.close(); }
+  } finally { await page.close(); await anonymous.close(); }
   assert.deepEqual(small, []);
 });
 
@@ -334,7 +394,8 @@ async function focusIndicatorChanges(page, selector) {
 }
 
 test('chaque commande atteinte au clavier montre un focus visible', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
+  const anonymous = await openPage();
   const invisible = [];
   try {
     const checks = [
@@ -343,18 +404,19 @@ test('chaque commande atteinte au clavier montre un focus visible', async () => 
       ['/search?q=nike', [`${C} form[action="/search"] input[name="q"]`, `${C} .mode a`]],
       ['/assets', [`${C} form[action="/assets"] input[name="q"]`]],
       [`/work/${corpus.slug}`, [`${C} a.tab`, `${C} button.pill`, `${C} .doss-essay .grid a`]],
-      ['/admin/ingest', [`${C} button`, `${C} input[type="file"]`, `${C} input[type="password"]`, `${C} textarea`]],
+      ['/admin/ingest', [`${C} button`, `${C} input[type="file"]`, `${C} textarea`]],
       ['/sign-in', [`${C} input[type="email"]`, `${C} button[type="submit"]`]],
     ];
-    for (const [route, selectors] of checks) {
-      await visit(page, `${route}`);
-      await page.keyboard.press('Tab'); // keyboard modality, as a keyboard user would arrive
+    checks.push(['/admin/login', [`${C} input[type="password"]`, `${C} button[type="submit"]`], anonymous]);
+    for (const [route, selectors, tab = page] of checks) {
+      await visit(tab, `${route}`);
+      await tab.keyboard.press('Tab'); // keyboard modality, as a keyboard user would arrive
       for (const selector of selectors) {
-        const result = await focusIndicatorChanges(page, selector);
+        const result = await focusIndicatorChanges(tab, selector);
         if (result !== true) invisible.push(`${route} ${selector}: ${result}`);
       }
     }
-  } finally { await page.close(); }
+  } finally { await page.close(); await anonymous.close(); }
   assert.deepEqual(invisible, []);
 });
 
@@ -368,7 +430,7 @@ test('les modes de recherche ne simulent pas des onglets dépourvus de leur comp
 });
 
 test('l’aperçu d’un actif piège le focus, se ferme par Échap et rend le focus à son déclencheur', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
     await visit(page, '/admin/ingest');
     await page.getByRole('button', { name: /Charger l[’']exemple/ }).click();
@@ -380,6 +442,8 @@ test('l’aperçu d’un actif piège le focus, se ferme par Échap et rend le f
     await trigger.focus();
     await page.keyboard.press('Enter');
     await page.locator('dialog[open]').waitFor();
+    // Each asset shows its own declared licence and source, or says they are missing.
+    assert.match(await page.locator('dialog[open]').innerText(), /Licence déclarée : \S+[\s\S]*Source de l’actif : \S+/);
     const keys = ['Tab', 'Tab', 'Tab', 'Tab', 'Shift+Tab', 'Shift+Tab', 'Shift+Tab', 'Shift+Tab'];
     for (const [step, keyName] of keys.entries()) {
       assert.ok(await page.evaluate(() => document.querySelector('dialog[open]')?.contains(document.activeElement)),
@@ -422,7 +486,7 @@ test('une panne de lecture serveur est lisible et « Réessayer » relit réelle
 });
 
 test('l’échec de chargement de l’exemple est annoncé et peut être réessayé', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
     await visit(page, '/admin/ingest');
     await page.route('**/dossier-example.json', (route) => route.fulfill({ status: 503, contentType: 'text/plain', body: 'Service Unavailable' }));
@@ -437,17 +501,16 @@ test('l’échec de chargement de l’exemple est annoncé et peut être réessa
   } finally { await page.close(); }
 });
 
-async function loadExampleWithKey(page) {
+async function loadExampleInSession(page) {
   await visit(page, '/admin/ingest');
   await page.getByRole('button', { name: /Charger l[’']exemple/ }).click();
-  await page.locator(`${C} input[type="password"]`).fill(key);
   await page.getByRole('button', { name: 'Soumettre le dossier' }).waitFor();
 }
 
 test('une coupure réseau à l’envoi est décrite en français, sans perdre le dossier saisi', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
-    await loadExampleWithKey(page);
+    await loadExampleInSession(page);
     await page.route('**/api/v1/ingest/dossier', (route) => route.abort('internetdisconnected'));
     await page.getByRole('button', { name: 'Soumettre le dossier' }).click();
     const message = await alertText(page);
@@ -459,9 +522,9 @@ test('une coupure réseau à l’envoi est décrite en français, sans perdre le
 });
 
 test('une réponse de passerelle non JSON est décrite par son statut, pas par une erreur d’analyse', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
-    await loadExampleWithKey(page);
+    await loadExampleInSession(page);
     await page.route('**/api/v1/ingest/dossier', (route) => route.fulfill({ status: 502, contentType: 'text/html', body: '<html><body>Bad gateway</body></html>' }));
     await page.getByRole('button', { name: 'Soumettre le dossier' }).click();
     const message = await alertText(page);
@@ -471,9 +534,9 @@ test('une réponse de passerelle non JSON est décrite par son statut, pas par u
 });
 
 test('un dossier refusé par le serveur liste les problèmes renvoyés', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
-    await loadExampleWithKey(page);
+    await loadExampleInSession(page);
     await page.route('**/api/v1/ingest/dossier', (route) => route.fulfill({ status: 422, contentType: 'application/json',
       body: JSON.stringify({ ok: false, error: 'INVALID_DOSSIER', issues: [{ path: 'assets.0.url', message: 'URL invalide' }] }) }));
     await page.getByRole('button', { name: 'Soumettre le dossier' }).click();
@@ -484,7 +547,7 @@ test('un dossier refusé par le serveur liste les problèmes renvoyés', async (
 });
 
 test('une référence inconnue est dite absente, pas privée de son dossier d’origine', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
     await visit(page, '/admin/ingest?slug=reference-inconnue-ui');
     const message = await alertText(page);
@@ -494,7 +557,7 @@ test('une référence inconnue est dite absente, pas privée de son dossier d’
 });
 
 test('le chargement du dossier courant est annoncé, et son échec réseau propose de réessayer', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
     let release;
     const held = new Promise((resolve) => { release = resolve; });
@@ -512,7 +575,7 @@ test('le chargement du dossier courant est annoncé, et son échec réseau propo
 });
 
 test('la copie du modèle signale son échec au lieu de rester silencieuse', async () => {
-  const page = await openPage();
+  const page = await openPage(undefined, { admin: true });
   try {
     await visit(page, '/admin/ingest');
     await page.route('**/dossier-template.json', (route) => route.fulfill({ status: 500, body: 'error' }));

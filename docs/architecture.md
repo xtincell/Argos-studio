@@ -11,9 +11,9 @@ Ce document décrit comment Argos est construit. Pour les décisions individuell
 **v1 (current) — classic stack, zero LLM dependencies.** Argos is a monorepo TypeScript app composed of :
 
 - A Next.js (App Router) web application serving the public surface, the expert console, and the REST API v1
-- A SQLite database via Prisma in development ; PostgreSQL (Neon managed) in production
+- A SQLite database via Prisma, in development and in production on a persistent volume of the owner's VPS ([ADR-0009](decisions/0009-vps-sqlite-cle-unique.md), which supersedes the Neon/Vercel hosting and the Auth.js accounts described further down)
 - Object storage (Cloudflare R2) for binary assets (images, videos)
-- Manual JSON ingestion via `/admin/ingest` (POST `/api/v1/ingest/dossier`)
+- Manual JSON ingestion via `/admin/ingest` (POST `/api/v1/ingest/dossier`), behind the single administration key `ARGOS_ADMIN_KEY`
 - Classic search backed by Postgres full-text + structured taxonomy facets
 
 **Out of scope for v1 :** vector search (pgvector), LLM extraction (Anthropic SDK), embeddings (Voyage AI), MCP server, async worker queue (BullMQ/Redis). These are post-v1 evolutions that require independent product justification — the manual JSON ingestion path delivers the same data shape without them.
