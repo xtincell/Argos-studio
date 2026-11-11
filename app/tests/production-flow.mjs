@@ -14,7 +14,7 @@ await new Promise(resolve => listener.close(resolve));
 const origin = `http://127.0.0.1:${port}`;
 const key = 'synthetic-editorial-library-runtime-receipt-key';
 const env = { ...process.env, DATABASE_URL: `file:${join(directory, 'receipt.db')}`,
-  ARGOS_INGEST_API_KEY: key, NEXT_PUBLIC_SITE_URL: origin,
+  ARGOS_ADMIN_KEY: key, NEXT_PUBLIC_SITE_URL: origin,
   ANTHROPIC_API_KEY: '', VOYAGE_API_KEY: '', NEXT_TELEMETRY_DISABLED: '1' };
 let server;
 let logs = '';
@@ -73,7 +73,44 @@ try {
   publicDossier.summary = 'Stale competing amendment must never replace current editorial work.';
   assert.equal((await post(publicDossier, receipt.updatedAt)).status, 409);
   assert.equal((await (await fetch(`${origin}/api/v1/references/${receipt.slug}`)).json()).data.summary, 'Amended synthetic reference visible without rebuilding the server.');
-  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true }));
+  // Single administration key: pages need a session, the session is a signed cookie, reads stay public.
+  const manual = { redirect: 'manual' };
+  const anonymousAdmin = await fetch(`${origin}/admin/ingest?slug=${receipt.slug}`, manual);
+  assert.equal(anonymousAdmin.status, 303, 'An administration page without session is not rendered.');
+  // Next names every loopback address `localhost`; behind the proxy the forwarded public host is kept.
+  const loginLocation = new URL(anonymousAdmin.headers.get('location'));
+  assert.equal(`${loginLocation.pathname}${loginLocation.search}`, `/admin/login?next=${encodeURIComponent(`/admin/ingest?slug=${receipt.slug}`)}`);
+  assert.ok(!(await anonymousAdmin.text()).includes('Soumettre le dossier'));
+  const loginPage = await fetch(`${origin}/admin/login`, manual);
+  assert.equal(loginPage.status, 200);
+  assert.ok((await loginPage.text()).includes('name="key"'));
+  const login = (value) => fetch(`${origin}/api/admin/login`, { ...manual, method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: origin }, body: new URLSearchParams({ key: value, next: '/admin/ingest' }) });
+  const refusedLogin = await login('wrong-synthetic-runtime-key-0000000');
+  assert.equal(refusedLogin.status, 303);
+  assert.match(refusedLogin.headers.get('location') ?? '', /^\/admin\/login\?erreur=cle/);
+  assert.equal(refusedLogin.headers.get('set-cookie'), null);
+  const opened = await login(key);
+  assert.equal(opened.status, 303);
+  const setCookie = opened.headers.get('set-cookie') ?? '';
+  for (const attribute of [/HttpOnly/i, /Secure/i, /SameSite=Strict/i, /Path=\//i]) assert.match(setCookie, attribute);
+  assert.ok(!setCookie.includes(key), 'The key never travels back in the cookie.');
+  const session = setCookie.split(';')[0];
+  const adminPage = await fetch(`${origin}/admin/ingest`, { ...manual, headers: { Cookie: session } });
+  assert.equal(adminPage.status, 200);
+  assert.ok((await adminPage.text()).includes('Fermer la session'));
+  const sessionPost = (headers, title) => fetch(`${origin}/api/v1/ingest/dossier`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: session, ...headers },
+    body: JSON.stringify({ ...dossier, operation: { ...dossier.operation, title } }) });
+  assert.equal((await sessionPost({ Origin: origin }, 'Synthetic runtime session write')).status, 201);
+  assert.equal((await sessionPost({}, 'Synthetic cookie write without origin')).status, 403);
+  const closed = await fetch(`${origin}/api/admin/logout`, { ...manual, method: 'POST', headers: { Origin: origin, Cookie: session } });
+  assert.equal(closed.status, 303);
+  assert.match(closed.headers.get('set-cookie') ?? '', /argos_admin=;.*Max-Age=0/i);
+  for (const route of ['/api/v1', '/api/v1/references', `/api/v1/references/${receipt.slug}`, `/work/${receipt.slug}`]) {
+    assert.equal((await fetch(`${origin}${route}`)).status, 200, `${route} stays public.`);
+  }
+  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true, adminPageWithoutSession303: true, signedSessionCookie: true, sessionWrite201: true, sessionWriteWithoutOrigin403: true, publicReads200: true }));
 } catch (error) {
   console.error(logs);
   throw error;
