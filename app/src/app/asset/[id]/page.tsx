@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { FreshTime } from '@/components/fresh-time';
 import { getAssetById, getAssetsByFunction } from '@/lib/library';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import type { Asset, AssetFunction, Reference } from '@/lib/types';
@@ -136,17 +137,11 @@ export default async function AssetPage({ params }: AssetPageProps) {
             {reference.brandEmitter}
           </Link>
           {reference.agencyCreator ? ` · ${reference.agencyCreator}` : ''} · {reference.emissionYear}
+          <FreshTime value={reference.updatedAt} prefix=" · dossier mis à jour le" />
         </p>
 
         {/* Main display zone */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 320px',
-            gap: 32,
-            alignItems: 'start',
-          }}
-        >
+        <div className="asset-detail-grid">
           {/* Left : the asset itself */}
           <div>
             {showImg && imgSrc && (

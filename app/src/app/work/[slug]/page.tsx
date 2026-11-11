@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ReferenceActions } from '@/components/reference-actions';
 import { WorkViewTabs } from '@/components/work-view-tabs';
+import { FreshTime } from '@/components/fresh-time';
 import { JsonLd } from '@/components/json-ld';
+import { buildArticleJsonLd } from '@/lib/article-json-ld';
 import { getReferenceBySlug } from '@/lib/library';
 import {
   type Asset,
@@ -81,59 +83,6 @@ export default async function ReadView({ params }: WorkPageProps) {
   );
 }
 
-/**
- * Schema.org Article — gives Google + LinkedIn rich-card context.
- * We use Article rather than CreativeWork because Argos publishes editorial analyses.
- */
-function buildArticleJsonLd(reference: Reference) {
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://argos.studio';
-  const url = `${site}/work/${reference.slug}`;
-  const heroAsset = getHeroAsset(reference);
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: `${reference.title} — ${reference.brandEmitter}`,
-    description: reference.summary,
-    url,
-    mainEntityOfPage: url,
-    inLanguage: 'fr',
-    isAccessibleForFree: true,
-    image: heroAsset?.url || `${site}/work/${reference.slug}/opengraph-image`,
-    author: reference.researcherName
-      ? { '@type': 'Person', name: reference.researcherName }
-      : { '@type': 'Organization', name: 'Argos' },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Argos',
-      url: site,
-    },
-    datePublished: reference.researchDate ?? `${reference.emissionYear}-01-01`,
-    dateModified: reference.researchDate ?? new Date().toISOString().slice(0, 10),
-    about: [
-      { '@type': 'Brand', name: reference.brandEmitter },
-      { '@type': 'Thing', name: reference.sector },
-      ...(reference.agencyCreator
-        ? [{ '@type': 'Organization', name: reference.agencyCreator }]
-        : []),
-    ],
-    keywords: [
-      reference.brandEmitter,
-      reference.sector,
-      reference.patternKind,
-      reference.manipulationMode,
-      ...reference.victoryTypes,
-      ...reference.operationGoals,
-    ].join(', '),
-    citation: (reference.researchSources ?? []).slice(0, 12).map((s) => ({
-      '@type': 'CreativeWork',
-      name: s.title,
-      url: s.url,
-      publisher: s.publisher ? { '@type': 'Organization', name: s.publisher } : undefined,
-      datePublished: s.publishedDate,
-    })),
-  };
-}
-
 function DossierGrid({
   reference,
   hero,
@@ -193,19 +142,11 @@ function DossierGrid({
           {titleHead} <span className="serif">{titleTail}</span>
         </h1>
         <div className="deck">{reference.summary}</div>
-        {reference.researchDate && (
-          <div
-            className="mono"
-            style={{
-              marginTop: 14,
-              fontSize: 11,
-              color: 'var(--ink-3)',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Dossier documenté {reference.researchDate}
-          </div>
+        {(reference.researchDate || reference.updatedAt) && (
+          <p className="mono doss-dates">
+            <FreshTime value={reference.researchDate} prefix="Dossier documenté le" />
+            <FreshTime value={reference.updatedAt} prefix="Mis à jour le" />
+          </p>
         )}
       </div>
 
@@ -232,6 +173,7 @@ function DossierGrid({
               {m.source && (
                 <div className="sub">
                   {humanAttribution(m.attribution)} · {shortify(m.source, 56)}
+                  <FreshTime value={m.measuredAtYearMonth} prefix=" · mesuré en" />
                 </div>
               )}
             </div>
@@ -794,8 +736,8 @@ function DossierSources({ reference }: { reference: Reference }) {
                   }}
                 >
                   {s.publisher && <span>{s.publisher}</span>}
-                  {s.publishedDate && <span>· publié {s.publishedDate}</span>}
-                  {s.accessedDate && <span>· consulté {s.accessedDate}</span>}
+                  <FreshTime value={s.publishedDate} prefix="· publié le" />
+                  <FreshTime value={s.accessedDate} prefix="· consulté le" />
                   <span style={{ marginLeft: 'auto' }}>
                     <span
                       className="pill"

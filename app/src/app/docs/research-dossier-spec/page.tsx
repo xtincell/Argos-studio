@@ -678,10 +678,8 @@ function Fields({
   return (
     <div style={{ display: 'grid', gap: 0 }}>
       <div
-        className="mono"
+        className="mono spec-fields-row spec-fields-head"
         style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 2fr 1fr 3fr',
           fontSize: 11,
           color: 'var(--ink-3)',
           letterSpacing: '0.04em',
@@ -698,9 +696,8 @@ function Fields({
       {fields.map((f) => (
         <div
           key={f.key}
+          className="spec-fields-row"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 2fr 1fr 3fr',
             fontSize: 13,
             padding: '10px 0',
             borderBottom: '1px solid var(--line-soft)',

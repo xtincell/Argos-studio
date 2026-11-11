@@ -426,8 +426,6 @@ function DefRow({
 }) {
   const rowStyle = {
     display: 'grid',
-    gridTemplateColumns: '180px 1fr 60px',
-    gap: 16,
     padding: '12px 0',
     borderBottom: '1px solid var(--line-soft)',
     textDecoration: 'none',
@@ -436,7 +434,7 @@ function DefRow({
   } as const;
   const inner = (
     <>
-      <div>
+      <div className="gloss-term">
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{term}</div>
         <code
           style={{
@@ -449,7 +447,7 @@ function DefRow({
           {code}
         </code>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{definition}</div>
+      <div className="gloss-def" style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{definition}</div>
       {count !== undefined ? (
         <div
           className="mono"
@@ -469,10 +467,10 @@ function DefRow({
   );
   if (href) {
     return (
-      <Link href={href} style={rowStyle}>
+      <Link href={href} className="gloss-row" style={rowStyle}>
         {inner}
       </Link>
     );
   }
-  return <div style={rowStyle}>{inner}</div>;
+  return <div className="gloss-row" style={rowStyle}>{inner}</div>;
 }

@@ -8,12 +8,19 @@ export const metadata: Metadata = {
 };
 
 interface NewsletterPageProps {
-  searchParams: Promise<{ subscribed?: string }>;
+  searchParams: Promise<{ subscribed?: string; error?: string }>;
 }
 
+/** Readable wording for the refusals of /api/newsletter, which redirects form posts here. */
+const SIGNUP_ERRORS: Record<string, string> = {
+  'invalid-email': 'Adresse email invalide : vérifiez-la (par exemple vous@studio.com), puis renvoyez le formulaire.',
+  'invalid-body': 'Le formulaire n’a pas pu être lu. Renvoyez-le.',
+};
+
 export default async function NewsletterPage({ searchParams }: NewsletterPageProps) {
-  const { subscribed } = await searchParams;
+  const { subscribed, error } = await searchParams;
   const success = subscribed === '1';
+  const failure = error ? (SIGNUP_ERRORS[error] ?? 'L’inscription n’a pas abouti. Renvoyez le formulaire.') : null;
   return (
     <section className="view">
       <div
@@ -60,8 +67,9 @@ export default async function NewsletterPage({ searchParams }: NewsletterPagePro
         </p>
 
         {success && (
-          <div
+          <output
             style={{
+              display: 'block',
               marginTop: 24,
               padding: '14px 16px',
               background: 'rgba(58, 142, 92, 0.1)',
@@ -72,6 +80,24 @@ export default async function NewsletterPage({ searchParams }: NewsletterPagePro
             }}
           >
             ✓ Inscription enregistrée. Le prochain dossier Argos arrivera dans votre boîte.
+          </output>
+        )}
+
+        {failure && (
+          <div
+            id="newsletter-error"
+            role="alert"
+            style={{
+              marginTop: 24,
+              padding: '14px 16px',
+              background: '#fff1ec',
+              border: '1px solid #e3a796',
+              borderRadius: 14,
+              fontSize: 14,
+              color: '#7a2614',
+            }}
+          >
+            {failure}
           </div>
         )}
 
@@ -98,6 +124,8 @@ export default async function NewsletterPage({ searchParams }: NewsletterPagePro
             type="email"
             placeholder="vous@studio.com"
             required
+            aria-invalid={failure ? true : undefined}
+            aria-describedby={failure ? 'newsletter-error' : undefined}
             style={{
               width: '100%',
               background: 'var(--paper)',
@@ -107,7 +135,6 @@ export default async function NewsletterPage({ searchParams }: NewsletterPagePro
               fontSize: 15,
               fontFamily: 'inherit',
               color: 'var(--ink)',
-              outline: 'none',
             }}
           />
           <button

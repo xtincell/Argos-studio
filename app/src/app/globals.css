@@ -2863,3 +2863,303 @@
   font-weight: 700;
   font-size: 9.5px;
 }
+
+/* ════════════════════════════════════════════════════
+   Accessibilité · focus, évitement, mobile (réception AR4)
+   ════════════════════════════════════════════════════ */
+:root {
+  --focus-ring: var(--ink);
+}
+html {
+  /* Focused or anchored content is never hidden under the sticky top bar. */
+  scroll-padding-top: 96px;
+}
+/* One visible focus indicator for every keyboard-reachable control. */
+:where(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Headings and main receive programmatic focus after navigation: shown to keyboard users only. */
+main:focus {
+  outline: none;
+}
+h1[tabindex='-1']:focus {
+  outline: none;
+}
+h1[tabindex='-1']:focus-visible {
+  outline: 2px dashed var(--ink-3);
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+/* Pill search fields: the borderless input shows its focus on the whole field. */
+.disc-hero .l .search:has(input:focus-visible),
+.search-bar-wrap form:has(input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.disc-hero .l .search .go:focus-visible,
+.search-bar-wrap form .go:focus-visible {
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--dark);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: none;
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.newsletter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.work-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.work-tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--ink-2);
+  transition: background 0.15s;
+}
+.work-tabs .tab.on {
+  background: var(--dark);
+  color: #fff;
+}
+
+/* Stored dates (research, access, last update). */
+.doss-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.deck-date {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.asset-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Rows of the glossary and of the dossier specification: shrinkable columns. */
+.gloss-row {
+  grid-template-columns: 180px minmax(0, 1fr) 60px;
+  gap: 16px;
+}
+.spec-fields-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 3fr);
+}
+.spec-fields-row code {
+  overflow-wrap: anywhere;
+}
+pre {
+  max-width: 100%;
+}
+
+@media (max-width: 960px) {
+  .asset-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  html {
+    scroll-padding-top: 132px;
+  }
+  .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* Top bar on two rows: brand + newsletter, then the four sections at full width. */
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand right'
+      'nav nav';
+    gap: 8px 12px;
+    padding: 8px 16px;
+  }
+  .topbar .brand {
+    grid-area: brand;
+    min-height: 44px;
+  }
+  .topbar .top-r {
+    grid-area: right;
+  }
+  .topbar .top-r .live {
+    display: none;
+  }
+  .newsletter-btn {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+  .nav-pill {
+    grid-area: nav;
+    justify-self: stretch;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    padding: 3px;
+  }
+  .nav-pill a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 13px;
+    text-align: center;
+  }
+  /* Principal commands: touch targets of at least 44 px. */
+  a.pill,
+  button.pill,
+  .work-tabs .tab,
+  .search-bar-wrap .mode a {
+    min-height: 44px;
+  }
+  .search-bar-wrap .mode a {
+    display: inline-flex;
+    align-items: center;
+  }
+  .disc-hero .l .search,
+  .search-bar-wrap form {
+    padding: 4px 4px 4px 16px;
+  }
+  .disc-hero .l .search input,
+  .search-bar-wrap form input {
+    min-height: 44px;
+  }
+  .disc-hero .l .search .go,
+  .search-bar-wrap form .go {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+  /* Grids whose tracks would otherwise keep their content width. */
+  .search-page > *,
+  .spec-bot > *,
+  .doss-grid > *,
+  .doss-body > * {
+    min-width: 0;
+  }
+  .facet-grp .ranges input {
+    min-width: 0;
+  }
+  .ax-c .top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .bund-c .g {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .srcs-c .it {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+  .srcs-c .it .lic {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .srcs-c,
+  .bund-c {
+    padding: 18px 16px;
+  }
+  /* Result rows: thumbnail and text, score below the text. */
+  .result-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+  }
+  .result-row .meta {
+    grid-column: 2;
+    min-width: 0;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    text-align: left;
+  }
+  .result-row .meta .sc {
+    font-size: 24px;
+  }
+  /* The bundle bento keeps readable cards instead of 40 px slivers. */
+  .doss-essay .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: 140px;
+  }
+  .doss-essay .grid .cl {
+    grid-column: span 1;
+    grid-row: auto;
+  }
+  .doss-essay .grid .cl.e1 {
+    grid-column: span 2;
+  }
+  .gloss-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+  .gloss-row .gloss-def {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .spec-fields-head {
+    display: none;
+  }
+  .spec-fields-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-flow: dense;
+  }
+  .spec-fields-row > :nth-child(2),
+  .spec-fields-row > :nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}

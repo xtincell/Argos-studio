@@ -265,7 +265,7 @@ function SectionBlock({
         </h2>
         <p style={{ marginTop: 4, fontSize: 13, color: 'var(--ink-3)' }}>{intro}</p>
       </header>
-      <div style={{ display: 'grid', gap: 16 }}>{children}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>{children}</div>
     </section>
   );
 }
@@ -301,6 +301,7 @@ function EndpointRow({ endpoint }: { endpoint: Endpoint }) {
             fontSize: 13,
             color: 'var(--ink)',
             fontWeight: 500,
+            overflowWrap: 'anywhere',
           }}
         >
           {endpoint.path}

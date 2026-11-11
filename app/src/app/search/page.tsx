@@ -356,14 +356,14 @@ function SearchBar({
         </button>
       </form>
       <div className="mode-row">
-        <div className="mode" role="tablist">
-          <Link href={basicHref} className={query.mode === 'basic' ? 'on' : ''} role="tab">
+        <nav className="mode" aria-label="Mode de recherche">
+          <Link href={basicHref} className={query.mode === 'basic' ? 'on' : ''} aria-current={query.mode === 'basic' ? 'page' : undefined}>
             Simple
           </Link>
-          <Link href={advancedHref} className={query.mode === 'advanced' ? 'on' : ''} role="tab">
+          <Link href={advancedHref} className={query.mode === 'advanced' ? 'on' : ''} aria-current={query.mode === 'advanced' ? 'page' : undefined}>
             Avancée
           </Link>
-        </div>
+        </nav>
         <div className="stats">
           <b>{resultCount}</b> résultat{resultCount > 1 ? 's' : ''} ·{' '}
           {totalCount.toLocaleString('fr-FR')} indexée{totalCount > 1 ? 's' : ''}

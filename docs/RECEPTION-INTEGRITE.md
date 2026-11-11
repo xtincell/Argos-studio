@@ -1,3 +1,45 @@
+# Interface — erreurs, clavier, mobile et fraîcheur (11 novembre 2026)
+
+Point AR4 du programme, borné à l’interface existante : aucune page, route ou
+modèle de données ajouté, aucun appel payant, aucune base opérateur.
+
+- Erreurs : le formulaire d’admission annonce le chargement du dossier courant,
+  de l’exemple et du modèle, puis décrit chaque échec (coupure réseau, statut
+  HTTP d’une passerelle non JSON, problèmes renvoyés par le serveur) avec
+  « Réessayer » quand un nouvel essai peut aboutir. Une référence inconnue est
+  dite absente ; un corps d’erreur ne devient plus le dossier saisi. La page
+  d’erreur relit réellement la page : « Réessayer » ne réaffichait que l’échec.
+  Une adresse refusée par l’inscription revient sur la page au lieu d’un JSON
+  brut. /works et l’accueil sans dossier disent « vide », distinct de la panne.
+- Clavier et focus : lien d’évitement, `<main>`, langue `fr`, focus porté au
+  titre après une navigation client, focus visible sur les champs de recherche,
+  l’adresse et les boutons du formulaire. L’aperçu d’actif garde Tab dans le
+  dialogue, se ferme par Échap et rend le focus à sa vignette. Les modes de
+  recherche et les vues d’une fiche sont des liens marqués `aria-current`, plus
+  de faux onglets ARIA.
+- Mobile : à 390 px, 29 routes sans défilement horizontal ni masquage par
+  `overflow` sur `html`/`body` ; en-tête sur deux rangées ; commandes principales
+  d’au moins 44 px (en-tête, recherches, vues et actions d’une fiche, formulaire
+  d’admission, inscription, 404).
+- Fraîcheur : les dates enregistrées sont affichées en `<time>` (dossier
+  documenté, mise à jour, consultation et publication des sources, mesure ;
+  dernière mise à jour sur l’accueil). Le JSON-LD reprend `updatedAt` et la date
+  de recherche ; il ne fabrique plus la date du jour ni un 1er janvier.
+
+Recette : `npm run test:ui`, 23 scénarios Playwright (Chromium) sur le serveur
+construit et sa propre base SQLite, hôtes externes bloqués. Sur `main`
+(`aa90b46`) 22 échouent, le 23ᵉ étant l’admission du corpus ; sur la branche
+les 23 passent. Six tests unitaires ajoutés à `npm test` (26 au total). Captures
+390/1280 px examinées localement, conservées hors dépôt.
+
+Restent ouverts : cibles secondaires sous 44 px (facettes 29 px, filtres de
+l’accueil 33 px, liens dans le texte), lecteur d’écran réel et appareils
+physiques non reçus, images et médias distants en échec non traités, dates
+absentes des cartes de liste, mouvement réduit non traité. Le formulaire
+d’inscription reste un bouchon qui annonce un enregistrement sans backend.
+
+---
+
 # Parcours manuel 0.2.0 — 19 octobre 2026
 
 Le gros œuvre manuel est exercé sur un serveur construit et une base isolée :

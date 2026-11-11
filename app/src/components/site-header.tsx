@@ -21,35 +21,28 @@ export function SiteHeader() {
         <span className="nm">Argos</span>
       </Link>
       <nav className="nav-pill" aria-label="Navigation principale">
-        {nav.map((item) => (
-          <Link key={item.label} href={item.href} className={item.match(pathname) ? 'on' : ''}>
-            {item.label}
-          </Link>
-        ))}
+        {nav.map((item) => {
+          const active = item.match(pathname);
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={active ? 'on' : ''}
+              // "page" for the link to this very page, "true" for its section (e.g. /asset/… under Assets)
+              aria-current={active ? (pathname === item.href ? 'page' : 'true') : undefined}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
       <div className="top-r">
         <div className="live">
           <span className="d" aria-hidden />
           Bibliothèque éditoriale
         </div>
-        <Link
-          href="/sign-in"
-          className="newsletter-btn"
-          aria-label="S'inscrire à la newsletter"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            padding: '6px 12px',
-            borderRadius: 999,
-            background: 'var(--coral)',
-            color: '#fff',
-            textDecoration: 'none',
-            fontWeight: 500,
-          }}
-        >
-          <Mail size={13} strokeWidth={2} />
+        <Link href="/sign-in" className="newsletter-btn" aria-label="S'inscrire à la newsletter">
+          <Mail size={13} strokeWidth={2} aria-hidden />
           Newsletter
         </Link>
       </div>

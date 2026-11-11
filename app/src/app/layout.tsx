@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter_Tight, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
+import { RouteFocus } from '@/components/route-focus';
 import { SiteHeader } from '@/components/site-header';
 
 const sans = Inter_Tight({
@@ -53,10 +54,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="fr" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <body>
+        <a href="#contenu" className="skip-link">
+          Aller au contenu
+        </a>
         <SiteHeader />
-        {children}
+        <main id="contenu" tabIndex={-1}>
+          {children}
+        </main>
+        <RouteFocus />
       </body>
     </html>
   );

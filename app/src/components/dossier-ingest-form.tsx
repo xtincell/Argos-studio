@@ -1,11 +1,17 @@
 'use client';
 
 import { AlertCircle, CheckCircle2, Copy, Download, FileJson, Loader2, Upload } from 'lucide-react';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ReferenceDetailView } from '@/components/reference-detail-view';
+import {
+  type Failure,
+  describeHttpFailure,
+  describeNetworkFailure,
+  describeResponseFailure,
+} from '@/lib/fetch-failure';
 import {
   dossierToReference,
   validateDossierJson,
@@ -18,32 +24,86 @@ type SubmitState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
   | { kind: 'success'; slug: string; assetCount: number }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; failure: Failure; offerReload: boolean };
+
+/** State of the requests that fill the editor (current dossier, example, template, file). */
+type Notice =
+  | { kind: 'loading'; message: string }
+  | { kind: 'info'; message: string }
+  | { kind: 'error'; failure: Failure; retry?: () => void };
+
+const MOBILE_TARGET = 'min-h-[44px] sm:min-h-0';
+
+function plainFailure(message: string): Failure {
+  return { message, issues: [], retryable: false };
+}
 
 export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
   const inputId = useId();
   const [json, setJson] = useState('');
   const [credential, setCredential] = useState('');
   const [expectedVersion, setExpectedVersion] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const mounted = useRef(true);
   useEffect(() => {
-    if (!initialSlug) return;
-    let active = true;
-    (async () => {
-      const response = await fetch(`/api/v1/references/${encodeURIComponent(initialSlug)}?format=dossier`, { cache: 'no-store' });
-      if (!response.ok) {
-        const current = await fetch(`/api/v1/references/${encodeURIComponent(initialSlug)}`, { cache: 'no-store' });
-        const payload = await current.json();
-        if (active) {
-          setExpectedVersion(payload.data?.updatedAt ? JSON.stringify(payload.data.updatedAt) : null);
-          setSubmitState({ kind: 'error', message: 'Le dossier d’origine manque. Chargez votre fichier pour reprendre cette référence ; aucune source n’est reconstituée automatiquement.' });
-        }
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const loadCurrent = useCallback(async (slug: string) => {
+    const action = 'Chargement du dossier courant';
+    const retry = () => { void loadCurrent(slug); };
+    const base = `/api/v1/references/${encodeURIComponent(slug)}`;
+    setNotice({ kind: 'loading', message: `Chargement du dossier « ${slug} »…` });
+    let response: Response;
+    try {
+      response = await fetch(`${base}?format=dossier`, { cache: 'no-store' });
+    } catch {
+      if (mounted.current) setNotice({ kind: 'error', failure: describeNetworkFailure(action), retry });
+      return;
+    }
+    if (response.ok) {
+      let original: unknown;
+      try { original = await response.json(); } catch {
+        if (mounted.current) setNotice({ kind: 'error', failure: describeHttpFailure(action, response.status, ''), retry });
         return;
       }
-      const original = await response.json();
-      if (active) { setExpectedVersion(response.headers.get('ETag')); setJson(JSON.stringify(original, null, 2)); }
-    })().catch(() => { if (active) setSubmitState({ kind: 'error', message: 'Le dossier courant n’a pas pu être reçu. Vos données ne sont pas déclarées absentes.' }); });
-    return () => { active = false; };
-  }, [initialSlug]);
+      if (!mounted.current) return;
+      setExpectedVersion(response.headers.get('ETag'));
+      setJson(JSON.stringify(original, null, 2));
+      setNotice(null);
+      return;
+    }
+    if (response.status === 404) {
+      if (mounted.current) setNotice({ kind: 'error', failure: plainFailure(`Aucune référence « ${slug} » n’existe dans la bibliothèque. Vous pouvez soumettre un nouveau dossier.`) });
+      return;
+    }
+    if (response.status !== 409) {
+      const failure = await describeResponseFailure(action, response);
+      if (mounted.current) setNotice({ kind: 'error', failure, retry: failure.retryable ? retry : undefined });
+      return;
+    }
+    // The reference exists without its original dossier: keep its version for an amendment.
+    try {
+      const current = await fetch(base, { cache: 'no-store' });
+      if (!current.ok) {
+        const failure = await describeResponseFailure(action, current);
+        if (mounted.current) setNotice({ kind: 'error', failure, retry: failure.retryable ? retry : undefined });
+        return;
+      }
+      const payload = (await current.json()) as { data?: { updatedAt?: string } };
+      if (!mounted.current) return;
+      setExpectedVersion(payload.data?.updatedAt ? JSON.stringify(payload.data.updatedAt) : null);
+      setNotice({ kind: 'error', failure: plainFailure('Le dossier d’origine n’est pas conservé pour cette ancienne référence. Chargez votre fichier pour la reprendre ; aucune source n’est reconstituée automatiquement.') });
+    } catch {
+      if (mounted.current) setNotice({ kind: 'error', failure: describeNetworkFailure(action), retry });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialSlug) void loadCurrent(initialSlug);
+  }, [initialSlug, loadCurrent]);
+
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [transform, setTransform] = useState<TransformResult | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>({ kind: 'idle' });
@@ -88,63 +148,104 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
 
   async function handleSubmit() {
     if (!validation?.ok || !validation.dossier || credential.length < 24) return;
+    const action = 'Envoi du dossier';
     setSubmitState({ kind: 'submitting' });
+    let res: Response;
     try {
-      const res = await fetch('/api/v1/ingest/dossier', {
+      res = await fetch('/api/v1/ingest/dossier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${credential}`, ...(expectedVersion ? { 'If-Match': expectedVersion } : {}) },
         body: json,
       });
-      const data = (await res.json()) as
-        | { ok: true; slug: string; assetCount: number; updatedAt: string }
-        | { ok: false; error: string; message?: string };
-      if (!res.ok || !data.ok) {
-        setSubmitState({
-          kind: 'error',
-          message: 'error' in data ? (data.message ?? data.error) : `HTTP ${res.status}`,
-        });
-        return;
-      }
-      setExpectedVersion(JSON.stringify(data.updatedAt));
-      setSubmitState({ kind: 'success', slug: data.slug, assetCount: data.assetCount });
-    } catch (err) {
-      setSubmitState({
-        kind: 'error',
-        message: err instanceof Error ? err.message : String(err),
-      });
+    } catch {
+      setSubmitState({ kind: 'error', failure: describeNetworkFailure(action), offerReload: false });
+      return;
     }
+    if (!res.ok) {
+      setSubmitState({ kind: 'error', failure: await describeResponseFailure(action, res), offerReload: res.status === 409 });
+      return;
+    }
+    let data: { ok?: boolean; slug?: string; assetCount?: number; updatedAt?: string; message?: string };
+    try {
+      data = await res.json();
+    } catch {
+      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : la réponse du serveur (HTTP ${res.status}) est illisible. Rechargez la référence pour vérifier si elle a été enregistrée.`), offerReload: true });
+      return;
+    }
+    if (!data.ok || !data.slug) {
+      setSubmitState({ kind: 'error', failure: plainFailure(`${action} : ${data.message ?? 'le serveur n’a pas confirmé l’enregistrement.'}`), offerReload: true });
+      return;
+    }
+    setExpectedVersion(data.updatedAt ? JSON.stringify(data.updatedAt) : null);
+    setSubmitState({ kind: 'success', slug: data.slug, assetCount: data.assetCount ?? 0 });
   }
 
   async function loadExample() {
-    const res = await fetch('/dossier-example.json');
-    const text = await res.text();
-    setJson(text);
+    const action = 'Chargement de l’exemple';
+    setNotice({ kind: 'loading', message: 'Chargement de l’exemple…' });
+    try {
+      const res = await fetch('/dossier-example.json', { cache: 'no-store' });
+      if (!res.ok) {
+        setNotice({ kind: 'error', failure: await describeResponseFailure(action, res), retry: () => { void loadExample(); } });
+        return;
+      }
+      setJson(await res.text());
+      setNotice(null);
+    } catch {
+      setNotice({ kind: 'error', failure: describeNetworkFailure(action), retry: () => { void loadExample(); } });
+    }
   }
 
-  function copyTemplate() {
-    fetch('/dossier-template.json')
-      .then((r) => r.text())
-      .then((t) => navigator.clipboard.writeText(t));
+  async function copyTemplate() {
+    const action = 'Copie du modèle';
+    const retry = () => { void copyTemplate(); };
+    let text: string;
+    try {
+      const res = await fetch('/dossier-template.json', { cache: 'no-store' });
+      if (!res.ok) {
+        setNotice({ kind: 'error', failure: await describeResponseFailure(action, res), retry });
+        return;
+      }
+      text = await res.text();
+    } catch {
+      setNotice({ kind: 'error', failure: describeNetworkFailure(action), retry });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice({ kind: 'info', message: 'Modèle copié dans le presse-papiers.' });
+    } catch {
+      setNotice({ kind: 'error', failure: plainFailure(`${action} : le presse-papiers a refusé l’écriture. Utilisez « Télécharger le modèle ».`) });
+    }
   }
 
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result;
-      if (typeof text === 'string') setJson(text);
+      if (typeof text === 'string') {
+        setJson(text);
+        setNotice(null);
+      }
+    };
+    reader.onerror = () => {
+      setNotice({ kind: 'error', failure: plainFailure(`Lecture du fichier « ${file.name} » impossible. Choisissez-le à nouveau.`) });
     };
     reader.readAsText(file);
+    // The same file can be chosen again after a correction.
+    input.value = '';
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       {/* Left : input + validation */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="font-display text-xl">1. Coller ou uploader le JSON du dossier</h2>
+            <h2 className="font-display text-xl">1. Coller ou importer le JSON du dossier</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Schema : <code className="font-mono">research-dossier-v1</code> ·{' '}
               <a href="/docs/research-dossier-spec" className="underline">
@@ -153,37 +254,43 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <Button variant="outline" size="sm" onClick={loadExample}>
-              <FileJson className="h-3.5 w-3.5" />
-              Charger l'exemple
+            <Button variant="outline" size="sm" className={MOBILE_TARGET} onClick={loadExample}>
+              <FileJson className="h-3.5 w-3.5" aria-hidden />
+              Charger l’exemple
             </Button>
-            <Button variant="outline" size="sm" onClick={copyTemplate}>
-              <Copy className="h-3.5 w-3.5" />
-              Copier le template
+            <Button variant="outline" size="sm" className={MOBILE_TARGET} onClick={copyTemplate}>
+              <Copy className="h-3.5 w-3.5" aria-hidden />
+              Copier le modèle
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" className={MOBILE_TARGET} asChild>
               <a href="/dossier-template.json" download>
-                <Download className="h-3.5 w-3.5" />
-                Télécharger le template
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                Télécharger le modèle
               </a>
             </Button>
-            <label className="cursor-pointer">
+            <label
+              className={cn(
+                'inline-flex h-8 cursor-pointer items-center gap-2 rounded-md border border-border bg-transparent px-3 text-xs font-medium transition-colors hover:bg-muted',
+                'focus-within:ring-2 focus-within:ring-ink focus-within:ring-offset-2 focus-within:ring-offset-bg',
+                MOBILE_TARGET,
+              )}
+            >
               <input
                 type="file"
                 accept="application/json,.json"
                 onChange={handleFileUpload}
                 className="sr-only"
               />
-              <span className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-transparent px-3 text-xs font-medium transition-colors hover:bg-muted">
-                <Upload className="h-3.5 w-3.5" />
-                Uploader un fichier
-              </span>
+              <Upload className="h-3.5 w-3.5" aria-hidden />
+              Importer un fichier
             </label>
           </div>
         </div>
 
+        {notice && <NoticeDisplay notice={notice} />}
+
         <label className="block text-sm">Clé d’admission de cette bibliothèque
-          <input type="password" autoComplete="off" value={credential} onChange={e => setCredential(e.target.value)} className="mt-1 block w-full rounded border border-border bg-card p-2" />
+          <input type="password" autoComplete="off" value={credential} onChange={e => setCredential(e.target.value)} className={cn('mt-1 block w-full rounded border border-border bg-card p-2', MOBILE_TARGET)} />
           <span className="text-xs text-muted-foreground">Conservée dans cet écran uniquement. La lecture et la prévisualisation restent disponibles sans clé.</span>
         </label>
         <textarea
@@ -192,8 +299,9 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
           onChange={(e) => setJson(e.target.value)}
           spellCheck={false}
           aria-label="JSON du dossier de recherche"
+          aria-busy={notice?.kind === 'loading'}
           placeholder='Collez votre JSON research-dossier-v1 ici, ou cliquez sur « Charger l&apos;exemple » pour partir d&apos;un dossier rempli.'
-          className="h-[36rem] w-full resize-none rounded-lg border border-border bg-card p-4 font-mono text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          className="h-[36rem] w-full resize-none rounded-lg border border-border bg-card p-4 font-mono text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
         />
 
         <ValidationDisplay validation={validation} stats={stats} />
@@ -211,40 +319,49 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
               <Button
                 variant="accent"
                 size="lg"
+                className={MOBILE_TARGET}
                 onClick={handleSubmit}
                 disabled={submitState.kind === 'submitting' || credential.length < 24}
+                aria-busy={submitState.kind === 'submitting'}
               >
                 {submitState.kind === 'submitting' ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                     Envoi…
                   </>
                 ) : (
                   <>Soumettre le dossier</>
                 )}
               </Button>
-              {submitState.kind === 'success' && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-success">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Ingéré comme <code className="font-mono">{submitState.slug}</code> avec{' '}
-                  {submitState.assetCount} asset{submitState.assetCount > 1 ? 's' : ''}
-                </span>
-              )}
-              {submitState.kind === 'success' && <a className="underline" href={`/work/${submitState.slug}`}>Ouvrir la référence</a>}
-              {submitState.kind === 'error' && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {submitState.message}
-                  {transform && <a className="underline" href={`/admin/ingest?slug=${transform.reference.slug}`}>Charger le dossier actuel</a>}
-                </span>
+              {credential.length < 24 && (
+                <span className="text-xs text-muted-foreground">Saisissez la clé d’admission pour soumettre.</span>
               )}
             </div>
+            <output className="mt-3 block">
+              {submitState.kind === 'success' && (
+                <span className="inline-flex flex-wrap items-center gap-1.5 text-sm text-success">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden />
+                  Ingéré comme <code className="font-mono">{submitState.slug}</code> avec{' '}
+                  {submitState.assetCount} asset{submitState.assetCount > 1 ? 's' : ''}.{' '}
+                  <a className="underline" href={`/work/${submitState.slug}`}>Ouvrir la référence</a>
+                </span>
+              )}
+            </output>
+            {submitState.kind === 'error' && (
+              <FailureDisplay failure={submitState.failure}>
+                {submitState.offerReload && (
+                  <a className="underline" href={`/admin/ingest?slug=${encodeURIComponent(transform.reference.slug)}`}>
+                    Charger le dossier actuel
+                  </a>
+                )}
+              </FailureDisplay>
+            )}
           </div>
         )}
       </div>
 
       {/* Right : preview */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <div>
           <h2 className="font-display text-xl">2. Prévisualiser la référence générée</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -258,11 +375,54 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
             <AuditDisplay audit={transform.audit} />
           </div>
         ) : (
-          <div className="flex h-[40rem] items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
-            Collez un JSON valide à gauche pour voir la prévisualisation.
+          <div className="flex h-[40rem] items-center justify-center rounded-lg border border-dashed border-border bg-card p-4 text-center text-sm text-muted-foreground">
+            {notice?.kind === 'loading' ? notice.message : 'Collez un JSON valide à gauche pour voir la prévisualisation.'}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function NoticeDisplay({ notice }: { notice: Notice }) {
+  if (notice.kind === 'error') {
+    return (
+      <FailureDisplay failure={notice.failure}>
+        {notice.retry && (
+          <Button variant="outline" size="sm" className={MOBILE_TARGET} onClick={notice.retry}>
+            Réessayer
+          </Button>
+        )}
+      </FailureDisplay>
+    );
+  }
+  return (
+    <output className="flex items-center gap-2 text-sm text-ink-2">
+      {notice.kind === 'loading' && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+      {notice.message}
+    </output>
+  );
+}
+
+/** A readable failure: what failed, the server issues if any, and what can be done. */
+function FailureDisplay({ failure, children }: { failure: Failure; children?: React.ReactNode }) {
+  return (
+    <div role="alert" className="mt-3 rounded-md border border-[#e3a796] bg-[#fff1ec] p-4 text-sm text-[#7a2614]">
+      <p className="flex items-start gap-1.5">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <span>{failure.message}</span>
+      </p>
+      {failure.issues.length > 0 && (
+        <ul className="mt-2 space-y-1 font-mono text-xs">
+          {failure.issues.slice(0, 8).map((issue) => (
+            <li key={JSON.stringify([issue.path, issue.message])}>
+              <code>{issue.path}</code> — {issue.message}
+            </li>
+          ))}
+          {failure.issues.length > 8 && <li>… +{failure.issues.length - 8} autres problèmes</li>}
+        </ul>
+      )}
+      {children && <div className="mt-3 flex flex-wrap items-center gap-3">{children}</div>}
     </div>
   );
 }
@@ -278,28 +438,28 @@ function ValidationDisplay({
 
   if (validation.jsonError) {
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4">
+      <div className="rounded-md border border-[#e3a796] bg-[#fff1ec] p-4">
         <h3 className="inline-flex items-center gap-1.5 font-display text-sm">
-          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertCircle className="h-4 w-4 text-[#7a2614]" />
           Erreur de syntaxe JSON
         </h3>
-        <p className="mt-2 font-mono text-xs text-destructive">{validation.jsonError}</p>
+        <p className="mt-2 font-mono text-xs text-[#7a2614]">{validation.jsonError}</p>
       </div>
     );
   }
 
   if (!validation.ok && validation.errors) {
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4">
+      <div className="rounded-md border border-[#e3a796] bg-[#fff1ec] p-4">
         <h3 className="inline-flex items-center gap-1.5 font-display text-sm">
-          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertCircle className="h-4 w-4 text-[#7a2614]" />
           Validation refusée ({validation.errors.length} problème
           {validation.errors.length > 1 ? 's' : ''})
         </h3>
         <ul className="mt-3 space-y-1 font-mono text-xs">
           {validation.errors.slice(0, 8).map((e) => (
             <li key={JSON.stringify([e.path, e.message])} className="flex gap-2">
-              <span className="shrink-0 text-destructive">×</span>
+              <span className="shrink-0 text-[#7a2614]">×</span>
               <span className="text-muted-foreground">
                 <code className="text-foreground">{e.path}</code> — {e.message}
               </span>
