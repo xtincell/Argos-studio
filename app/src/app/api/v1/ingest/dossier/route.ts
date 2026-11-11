@@ -7,11 +7,11 @@
 import { Prisma } from '@prisma/client';
 import { NextResponse, type NextRequest } from 'next/server';
 import { ResearchDossierSchema } from '@/lib/research-dossier';
-import { requireIngestAccess } from '@/server/ingest-access';
+import { requireAdmin } from '@/server/admin-access';
 import { ingestDossier, IngestValidationError } from '@/server/ingest';
 
 export async function POST(request: NextRequest) {
-  const denied = requireIngestAccess(request);
+  const denied = requireAdmin(request);
   if (denied) return denied;
   let raw: unknown;
   try {
@@ -81,6 +81,8 @@ export async function GET() {
       endpoint: '/api/v1/ingest/dossier',
       method: 'POST',
       schemaVersion: 'research-dossier-v1',
+      authentication: 'Authorization: Bearer <ARGOS_ADMIN_KEY>, or an administration session opened at /admin/login',
+      concurrency: 'Amending an existing reference requires If-Match with its current version (ETag of ?format=dossier); a stale version receives 409.',
       docs: '/docs/research-dossier-spec',
       template: '/dossier-template.json',
       example: '/dossier-example.json',

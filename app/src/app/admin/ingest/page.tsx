@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { DossierIngestForm } from '@/components/dossier-ingest-form';
+import { requireAdminPage } from '@/server/admin-page';
+
+// Administration content is rendered per request, for an open session only.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Ingestion manuelle',
@@ -10,23 +14,39 @@ export const metadata: Metadata = {
 
 export default async function IngestPage({ searchParams }: { searchParams: Promise<{ slug?: string }> }) {
   const { slug } = await searchParams;
+  await requireAdminPage(slug ? `/admin/ingest?slug=${encodeURIComponent(slug)}` : '/admin/ingest');
   return (
     <section className="view">
       <div className="wrap" style={{ paddingTop: 24 }}>
         <header style={{ marginBottom: 24 }}>
-          <p
-            className="mono"
+          <div
             style={{
-              fontSize: 11,
-              color: 'var(--ink-3)',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              margin: 0,
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
               marginBottom: 12,
             }}
           >
-            Admin · Ingestion manuelle
-          </p>
+            <p
+              className="mono"
+              style={{
+                fontSize: 11,
+                color: 'var(--ink-3)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}
+            >
+              Admin · Ingestion manuelle · session ouverte
+            </p>
+            <form method="post" action="/api/admin/logout">
+              <button type="submit" className="pill" style={{ minHeight: 44, cursor: 'pointer' }}>
+                Fermer la session
+              </button>
+            </form>
+          </div>
           <h1
             style={{
               fontSize: 44,
