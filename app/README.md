@@ -6,7 +6,7 @@ L’application possède une bibliothèque Prisma/SQLite, des routes REST v1 et 
 admission JSON manuelle. Les lectures utilisent la base ; les fixtures ne sont
 pas une preuve de campagne collectée aujourd’hui. Les sections de bootstrap
 ci-dessous sont historiques : elles ne décrivent pas l’architecture intégralement.
-Les écritures exigent la clé d’admission de cette bibliothèque. Les comptes Auth.js, le serveur MCP et les consultations privées restent ouverts.
+Les écritures et l’administration exigent la clé unique `ARGOS_ADMIN_KEY` (ADR-0009). Le serveur MCP et l’espace privé des consultations restent ouverts.
 Voir [la réception d’intégrité](../docs/RECEPTION-INTEGRITE.md) et le changelog.
 
 Pour une base locale neuve, fournir `DATABASE_URL` à Prisma, appliquer
@@ -25,8 +25,8 @@ Next.js application for Argos — face publique (moteur de recherche éditorial)
 - **UI primitives** : Custom + Radix UI primitives + Lucide icons
 - **Animations** : Framer Motion (subtle only)
 - **State** : React Server Components + tRPC (post-bootstrap)
-- **Database** : Prisma 6 + PostgreSQL + pgvector (post-bootstrap)
-- **Auth** : Auth.js v5 (post-bootstrap)
+- **Database** : Prisma 6 + SQLite (fichier sur volume en production, ADR-0009)
+- **Auth** : clé unique d’administration, en-tête Bearer ou session signée (ADR-0009)
 - **Lint / Format** : Biome
 
 ## Local setup
@@ -36,7 +36,7 @@ Node 22 pour les tests et la réception. Works with `npm` (ships with Node) or `
 ```bash
 npm ci
 cp .env.example .env
-# Définir ARGOS_INGEST_API_KEY (24 caractères minimum) ; les clés LLM ne sont pas requises.
+# Définir ARGOS_ADMIN_KEY (24 caractères minimum) ; les clés LLM ne sont pas requises.
 # Exemple SQLite neuf : créer le fichier absent, sans toucher à une base existante.
 node -e "const fs=require('node:fs');if(!fs.existsSync('prisma/dev.db'))fs.writeFileSync('prisma/dev.db','',{flag:'wx',mode:0o600})"
 npx prisma migrate deploy
@@ -119,10 +119,17 @@ Hephaistos (Tech Lead). For issues, see GitHub Issues or Linear `ARG-*`.
 
 ## Admission, correction et remise
 
-Le formulaire lit un fichier `research-dossier-v1`, affiche sa prévisualisation,
-puis soumet avec la clé conservée en mémoire dans cet écran. Une clé absente
-côté serveur refuse les écritures (503), une clé incorrecte reçoit 401 ; les
-lectures publiques ne donnent pas accès aux consultations privées.
+L’administration s’ouvre sur `/admin/login` avec la clé `ARGOS_ADMIN_KEY` : le
+serveur pose un cookie de session signé (`HttpOnly`, `Secure`, `SameSite=Strict`,
+huit heures), qui ne contient pas la clé. Sans session, `/admin/*` renvoie à la
+connexion (303) avant tout rendu. Le formulaire lit un fichier
+`research-dossier-v1`, affiche sa prévisualisation, puis soumet par la session ;
+une écriture par session doit venir de cette bibliothèque (en-tête `Origin`).
+Un client serveur, comme la projection de La Fusée, envoie
+`Authorization: Bearer <clé>`. Sans clé configurée côté serveur, l’administration
+est fermée (503) ; une clé ou une session refusée reçoit 401. Les lectures
+publiques ne demandent rien. Comparaison à temps constant ; changer la clé ferme
+toutes les sessions.
 
 Depuis une fiche, « Modifier le dossier » recharge le dossier canonique et son
 ETag. Un amendement différent exige `If-Match`; une version périmée reçoit409.
@@ -139,14 +146,15 @@ aucun récit de production ou résultat commercial. Les vues de données sont
 lues à la requête, pour retrouver un dépôt ou une correction après le build.
 
 ```bash
-npm test                    # 20 scénarios, bases jetables et migration incluse
+npm test                    # 39 scénarios, bases jetables et migration incluse
 npm run typecheck
 npm run lint
 npm run build
 node tests/production-flow.mjs  # serveur construit + base séparée, aucun fournisseur
 ```
 
-L’installation TPE, les sessions d’utilisateurs, la séparation des consultations
-privées, les droits de réemploi et les dérivations d’actifs entre références
-restent à recevoir avant la release complète. Aucun déploiement public ou
+L’image du VPS est décrite dans le README racine (`Dockerfile`, volume `/data`,
+sauvegarde `argos-backup`). L’espace privé des consultations, les droits de
+réemploi et les dérivations d’actifs entre références restent à recevoir avant la
+release complète. Aucun déploiement public ou
 consentement client n’est déduit de la réception locale.

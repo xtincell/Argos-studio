@@ -1,5 +1,27 @@
 # Changelog Argos
 
+## Clé unique et image du VPS — non publiée (2026-11-11)
+
+Arbitrage 5.8, ADR-0009 : SQLite sur volume et une clé unique d’administration.
+
+- `ARGOS_ADMIN_KEY` remplace `ARGOS_INGEST_API_KEY`, désormais ignorée. Toute
+  écriture et toute page ou route `/admin` l’exigent : `Authorization: Bearer`
+  (La Fusée) ou session ouverte par `/admin/login`, cookie signé `HttpOnly`,
+  `Secure`, `SameSite=Strict`, huit heures, sans la clé. Comparaison à temps
+  constant ; une écriture par session doit porter l’`Origin` de la bibliothèque.
+  Sans clé configurée, l’administration est fermée ; la lecture et l’API v1
+  restent publiques. Codes `ADMIN_UNAUTHORIZED` et `ADMIN_NOT_CONFIGURED`.
+- Avant : `/admin/ingest` répondait 200 sans clé ; la clé se saisissait dans le
+  formulaire. Après : 303 vers la connexion, formulaire soumis par la session,
+  bouton « Fermer la session ». `/admin/ingest` sort du sitemap.
+- `Dockerfile` à la racine : serveur *standalone*, utilisateur non root, base sur
+  `/data` (refus de démarrer sans volume monté), migrations au démarrage,
+  sauvegarde à chaud `argos-backup`. `docker/recette.sh` et job CI `docker`.
+- L’aperçu d’un actif affiche sa licence et sa source déclarées, ou leur absence.
+- Tests : 13 cas de clé unique (12 rouges sur `main`, avec 2 cas d’accès existants),
+  recette du serveur construit étendue à la session, 24 scénarios d’interface
+  (17 rouges sur `main`).
+
 ## Interface — non publiée (2026-11-11)
 
 - Erreurs lisibles et réessayables dans l’admission (réseau, statut HTTP,

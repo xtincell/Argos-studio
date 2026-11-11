@@ -4,7 +4,7 @@
 
 Argos est un répertoire éditorial de patterns créatifs gagnants, exploitable comme moteur de recherche public ou via API/MCP pour les systèmes IA.
 
-La bibliothèque et son parcours manuel conservent des opérations, leurs actifs, leurs analyses et leurs sources. La clé d’admission protège les écritures ; comptes Auth.js, accès MCP et séparation des consultations privées restent à recevoir.
+La bibliothèque et son parcours manuel conservent des opérations, leurs actifs, leurs analyses et leurs sources. Une clé unique d’administration (`ARGOS_ADMIN_KEY`) protège les écritures et l’administration ; la lecture, la recherche et l’API v1 restent publiques. L’accès MCP et l’espace privé des consultations restent à recevoir ([ADR-0009](docs/decisions/0009-vps-sqlite-cle-unique.md)).
 L’[état de réception](docs/RECEPTION-INTEGRITE.md) distingue le code, ses tests
 et les parcours effectivement éprouvés. Les personas décrivent des responsabilités
 spécialisées ; leur présence ne prouve pas des agents actifs.
@@ -17,14 +17,84 @@ Node 22 est recommandé pour le runtime et requis pour la suite de réception. n
 cd app
 npm install         # or: pnpm install
 cp .env.example .env
-# Configurer ARGOS_INGEST_API_KEY (24 caractères minimum) pour les écritures.
+# Configurer ARGOS_ADMIN_KEY (24 caractères minimum) pour l’administration.
 # Initialisation de l’exemple SQLite local uniquement, sans écraser un fichier existant :
 node -e "const fs=require('node:fs');if(!fs.existsSync('prisma/dev.db'))fs.writeFileSync('prisma/dev.db','',{flag:'wx',mode:0o600})"
 npx prisma migrate deploy
 npm run dev         # or: pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). L’administration s’ouvre sur
+`/admin/login` avec la clé.
+
+## Déploiement (VPS, Coolify)
+
+Arbitrage 5.8 : SQLite sur un volume persistant et une clé unique
+([ADR-0009](docs/decisions/0009-vps-sqlite-cle-unique.md)). Le `Dockerfile` à la racine
+construit le serveur Next.js *standalone* et embarque le CLI Prisma : au démarrage, l’image
+vérifie le volume, applique `prisma migrate deploy`, puis sert le port 3000 sous l’utilisateur
+`node` (uid 1000). Aucun secret n’est dans l’image.
+
+Dans Coolify : ressource *Dockerfile* sur ce dépôt (répertoire de base `/`), port 3000, un
+stockage persistant monté en **`/data`**. Sans volume monté sur le répertoire de la base,
+le conteneur refuse de démarrer (sortie 78) plutôt que de perdre la bibliothèque au
+redéploiement suivant.
+
+| Variable | Où | Valeur |
+|---|---|---|
+| `ARGOS_ADMIN_KEY` | exécution seulement, secret | 24 caractères au moins, par exemple `openssl rand -base64 33` |
+| `NEXT_PUBLIC_SITE_URL` | exécution **et** construction (*Build Variable*) | adresse publique, par exemple `https://argos.exemple.org` |
+| `DATABASE_URL` | facultative | défaut de l’image `file:/data/argos.db` ; un autre chemin doit rester sur le volume |
+
+Sans `ARGOS_ADMIN_KEY` (ou avec moins de 24 caractères), l’administration est fermée :
+écritures en 503, pages d’administration renvoyées à la connexion, qui le dit. L’ancienne
+`ARGOS_INGEST_API_KEY` est ignorée. Changer la clé ferme toutes les sessions ouvertes ;
+La Fusée doit alors recevoir la nouvelle valeur dans sa connexion Argos Studio (en-tête
+`Authorization: Bearer`). Les autres variables de `app/.env.example` (LLM, Auth.js, R2,
+analytics) ne sont pas lues par l’application.
+
+Un volume nommé neuf prend le propriétaire de l’image. Un montage de répertoire de l’hôte
+doit appartenir à l’uid 1000 : `install -d -m 700 -o 1000 -g 1000 /srv/argos-data`.
+
+La bibliothèque démarre vide ; elle se remplit par l’admission, jamais par le corpus de
+démonstration (`db:seed` ajoute aussi des références fictives). Les dossiers publics du dépôt
+s’admettent par la voie gouvernée :
+
+```bash
+for f in app/public/dossier-*.json; do
+  case "$f" in *template*|*example*) continue ;; esac
+  curl -fsS -X POST -H "Authorization: Bearer $ARGOS_ADMIN_KEY" \
+    -H 'Content-Type: application/json' --data-binary "@$f" \
+    https://argos.exemple.org/api/v1/ingest/dossier
+done
+```
+
+### Sauvegarde et restauration du volume
+
+`argos-backup` produit une copie cohérente de la base sans arrêter le serveur
+(`VACUUM INTO`, droits 600) et affiche son chemin :
+
+```bash
+docker exec <conteneur> argos-backup          # → /data/backups/argos-AAAAMMJJTHHMMSSZ.db
+docker cp <conteneur>:/data/backups/argos-….db ./
+```
+
+Le répertoire `/data/backups` est sur le même volume : copiez la sauvegarde hors du VPS (ou
+sauvegardez le volume par Coolify). Pour restaurer : arrêter le conteneur, remplacer
+`/data/argos.db` par la copie (droits 600, propriétaire uid 1000, sans fichier
+`argos.db-journal` résiduel), redémarrer ; les migrations manquantes s’appliquent seules.
+
+### Recette locale de l’image
+
+```bash
+docker build --build-arg NEXT_PUBLIC_SITE_URL=https://argos.exemple.org -t argos-studio .
+docker/recette.sh argos-studio
+```
+
+La recette (aussi lancée en CI) vérifie la lecture publique, les refus 401/503, la session,
+la conservation après redémarrage et après recréation du conteneur, la sauvegarde puis sa
+restauration sur un volume neuf, le refus de démarrer sans volume et l’absence de secret dans
+l’image. Elle supprime les conteneurs et volumes qu’elle crée.
 
 ## Structure du repo
 
@@ -39,6 +109,8 @@ argos-finder/
 │   ├── ux-ui-designer.md
 │   ├── editorial-curator.md
 │   └── growth-lead.md
+├── Dockerfile            # Image du VPS (ADR-0009)
+├── docker/               # Démarrage, sauvegarde et recette de l’image
 ├── docs/                 # Common documentation
 │   ├── PRD.md
 │   ├── architecture.md

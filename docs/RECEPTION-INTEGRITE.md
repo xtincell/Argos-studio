@@ -1,3 +1,76 @@
+# Administration par clé unique et image du VPS (11 novembre 2026)
+
+Point AR3 du programme, après l’arbitrage 5.8 (SQLite sur volume, clé unique ;
+[ADR-0009](decisions/0009-vps-sqlite-cle-unique.md)). Aucun modèle Prisma, aucune
+migration, aucun fournisseur ajoutés ; aucune base opérateur touchée, aucun déploiement.
+
+1. **Authentifier et autoriser.** Livré. `ARGOS_ADMIN_KEY` (24 caractères au moins)
+   est exigée par toute écriture et par toute page ou route d’administration :
+   en-tête `Authorization: Bearer` pour un client serveur, ou session de navigateur
+   ouverte par `/admin/login` (cookie signé `HttpOnly`, `Secure`, `SameSite=Strict`,
+   huit heures, qui ne contient pas la clé). Comparaison à temps constant ; écriture
+   par session refusée sans `Origin` de la bibliothèque ; sans clé configurée,
+   administration fermée (503, pages renvoyées à la connexion). Avant : sur `main`,
+   `/admin/ingest` répondait 200 sans clé et rendait le formulaire. Après : 303 vers
+   `/admin/login` par le middleware, puis contrôle dans la page elle-même. Un test
+   statique échoue si une route d’écriture ou une page `/admin` oublie la garde.
+   La lecture, la recherche et l’API v1 lues par La Fusée restent publiques, avec le
+   même corps 404 `{ ok: false, error: "NOT_FOUND" }`.
+2. **Espace privé.** Non construit : il demande des décisions de conception (voir
+   ci-dessous). Aujourd’hui `ConsultationRecord` n’a ni écrivain, ni lecteur, ni route :
+   rien de privé n’est stocké ni exposé.
+3. **Preuve ou licence par actif.** Déjà livré en 0.2.0 et vérifié : `sourceIndex` et
+   `sourceLicense` facultatifs par actif, `unknown` refusé, rien n’est déduit pour un
+   actif sans citation. Ajout : l’aperçu d’un actif (fiche et prévisualisation
+   d’admission) affiche « Licence déclarée » et « Source de l’actif », ou « À qualifier »
+   et « À documenter », comme la page d’actif.
+4. **Amendement concurrent.** Déjà livré en 0.2.0 et vérifié : modifier une référence
+   existante exige `If-Match` avec sa version (`ETag` de `?format=dossier`) ; une
+   version périmée reçoit 409 et l’écriture conditionnelle refuse un changement survenu
+   entre lecture et écriture. Le descripteur `GET /api/v1/ingest/dossier` le dit. Côté
+   La Fusée, l’envoi sans `If-Match` (F14) reste à corriger dans ADVE-project.
+
+Recettes, toutes rouges sur `main` puis vertes sur la branche :
+
+- `npm test` : 39 tests, dont 13 nouveaux sur la clé unique ; sur `main`, 14 rouges :
+  12 des nouveaux (le treizième — la lecture publique reste publique — vert des deux
+  côtés) et les 2 cas d’accès existants lus avec la nouvelle variable.
+- `node tests/production-flow.mjs` sur le serveur construit : connexion refusée puis
+  ouverte, attributs du cookie, page d’administration 303 puis 200, écriture par session
+  201, sans `Origin` 403, fermeture de session, lectures publiques 200.
+- `npm run test:ui` : 24 scénarios Playwright, dont un parcours de connexion réel
+  (17 rouges sur `main`).
+- `docker/recette.sh` sur l’image (job CI `docker`) : lecture 200, écritures 401, admission
+  201 par la clé, session, base en 600 sur le volume, fiche conservée après redémarrage et
+  dans un nouveau conteneur, sauvegarde à chaud puis restauration sur un volume neuf,
+  administration fermée sans clé, démarrage refusé sans volume, aucun secret dans l’image.
+
+## Espace privé : ce qui manque pour le construire
+
+L’ADR-0006 (point 3) annonce un namespace privé pour les consultations de La Fusée ;
+SHK-0002 dit à l’inverse que La Fusée porte le contexte privé de la marque. Avant tout
+code, il faut trancher :
+
+- **Faut-il un espace privé dans Argos ?** Si les briefs restent dans La Fusée, Argos n’a
+  rien de privé à garder et `ConsultationRecord` (dont `briefJson`) doit être retiré ou
+  réduit à des identifiants opaques.
+- **Le titulaire de l’espace** : l’instance La Fusée entière, chacune de ses marques, ou un
+  client d’UPgraders. C’est la valeur de l’`org_id` absent du modèle.
+- **Son accès** : la clé unique donne tout ; un espace privé demande un secret par titulaire
+  (clés hachées en base, rotation, révocation) ou un jeton signé par La Fusée. Aucun des
+  deux n’existe.
+- **Ses données** : quels champs, quelle durée de conservation, quelle purge et quel droit à
+  l’effacement (ADR-0006, point 5). La base et ses sauvegardes `argos-backup` sont un seul
+  fichier : un espace privé y voyagerait avec la bibliothèque publique.
+- **Ses lecteurs** : aucune route ni page ne lit ou n’écrit `ConsultationRecord`
+  aujourd’hui ; la frontière public/privé n’a donc pas encore de test d’isolation possible.
+
+Restent aussi ouverts : une seule identité (la clé) sans journal de qui a admis quoi, une
+session qui ne se révoque qu’en changeant la clé, le déploiement réel sur le VPS, la
+variable `ARGOS_STUDIO_URL` côté La Fusée et la redirection des anciens liens `/argos/…`.
+
+---
+
 # Interface — erreurs, clavier, mobile et fraîcheur (11 novembre 2026)
 
 Point AR4 du programme, borné à l’interface existante : aucune page, route ou
