@@ -58,6 +58,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run format` | Format code with Biome |
 | `npm run check` | Run all Biome checks |
 | `npm run typecheck` | TypeScript check without emit |
+| `npm test` | Contract and unit tests on a disposable SQLite database |
+| `npm run test:ui` | After `npm run build` : interface receipt (errors, keyboard/focus, 390 px, dates) with Playwright Chromium on its own server and database |
 
 ## Structure
 

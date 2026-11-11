@@ -1,5 +1,18 @@
 # Changelog Argos
 
+## Interface — non publiée (2026-11-11)
+
+- Erreurs lisibles et réessayables dans l’admission (réseau, statut HTTP,
+  problèmes du serveur, référence inconnue) ; « Réessayer » de la page d’erreur
+  relit la page ; refus d’inscription affiché sur la page ; listes vides dites.
+- Lien d’évitement, `<main>`, langue `fr`, focus au titre après navigation,
+  focus visible restauré, dialogue d’aperçu qui piège Tab et rend le focus.
+- 390 px sans défilement horizontal, en-tête sur deux rangées, commandes
+  principales d’au moins 44 px.
+- Dates enregistrées affichées ; JSON-LD sans date inventée.
+- `npm run test:ui` : 23 scénarios Playwright sur serveur construit, ajoutés à
+  la CI build. Lecteur d’écran réel et cibles secondaires restent ouverts.
+
 ## 0.2.0 — 2026-10-19
 
 Parcours manuel de référence : lecture canonique, correction avec version attendue,
