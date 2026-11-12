@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { EntityIndexShell } from '@/components/entity-index-shell';
 import { listSectors } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 export const metadata: Metadata = {
   title: 'Tous les secteurs — Argos',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function SectorsIndexPage() {
-  const sectors = await listSectors();
+  const scope = await pageReadScope();
+  const sectors = await listSectors(scope);
   return (
     <EntityIndexShell
       eyebrow="Secteurs"

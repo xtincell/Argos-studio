@@ -1,16 +1,18 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getReferencesByAgency } from '@/lib/library';
+import { requestReadScope, scopedJson } from '@/server/read-scope';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const scope = requestReadScope(request);
   const { slug } = await params;
-  const refs = await getReferencesByAgency(slug);
+  const refs = await getReferencesByAgency(slug, scope);
   if (refs.length === 0) {
-    return NextResponse.json({ ok: false, error: 'NOT_FOUND' }, { status: 404 });
+    return scopedJson({ ok: false, error: 'NOT_FOUND' }, scope, { status: 404 });
   }
-  return NextResponse.json({
+  return scopedJson({
     data: {
       slug,
       name: refs[0]?.agencyCreator,
@@ -18,5 +20,5 @@ export async function GET(
       operationsCount: refs.length,
       references: refs,
     },
-  });
+  }, scope);
 }

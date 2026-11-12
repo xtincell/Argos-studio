@@ -63,6 +63,16 @@ model Reference {
   ingestedAt                    DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
+  // Visibility (owner decision of 12 November 2026, ADR-0010): 'public' | 'private'.
+  // A private dossier belongs to UPgraders and is read with the administration key only;
+  // it is purged 24 months after its last modification (the later of updatedAt and
+  // visibilityChangedAt) unless made public. Existing rows are public.
+  visibility                    String   @default("public")
+  // Last explicit change of visibility: when, and by which channel of the single key
+  // ('admin-session' | 'admin-bearer'). A change keeps updatedAt, the content version.
+  visibilityChangedAt           DateTime?
+  visibilityChangedBy           String?
+
   // Relations
   revisions                     ReferenceRevision[]
   assets                        Asset[]
@@ -72,6 +82,7 @@ model Reference {
   annotations                   ExpertAnnotation[]
   filiationsFrom                Filiation[]         @relation("FromRef")
   filiationsTo                  Filiation[]         @relation("ToRef")
+  visibilityChanges             VisibilityChange[]
 
   @@index([brandEmitter])
   @@index([sector])
@@ -80,6 +91,7 @@ model Reference {
   @@index([patternKind])
   @@index([manipulationMode])
   @@index([ingestPath])
+  @@index([visibility])
 }
 
 /* -------------------------------------------------------------------------- */
@@ -277,4 +289,35 @@ model ReferenceRevision {
   retainedAt   DateTime  @default(now())
 
   @@unique([referenceId, versionAt])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Private space (ADR-0010) — history of visibility and log of retention       */
+/* -------------------------------------------------------------------------- */
+
+// Append-only history of explicit visibility changes. It disappears with its dossier: a purged
+// private dossier leaves no title or slug behind.
+model VisibilityChange {
+  id             String    @id @default(cuid())
+  referenceId    String
+  reference      Reference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+  fromVisibility String    // public | private
+  toVisibility   String    // public | private
+  changedAt      DateTime  @default(now())
+  changedBy      String    // admin-session | admin-bearer (single key: a channel, not a person)
+
+  @@index([referenceId])
+}
+
+// One row per real retention purge (a dry-run writes nothing). Counts only: no slug, title or
+// identifier of a purged dossier is kept.
+model PrivatePurgeRun {
+  id              String   @id @default(cuid())
+  ranAt           DateTime @default(now())
+  cutoff          DateTime // dossiers last modified at or before this instant were due
+  retentionMonths Int
+  purgedCount     Int
+  trigger         String   // scheduler | admin-session | admin-bearer
+
+  @@index([ranAt])
 }

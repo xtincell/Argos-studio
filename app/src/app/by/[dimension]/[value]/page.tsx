@@ -11,6 +11,7 @@ import {
   STRUCTURAL_AXIS_LABELS,
 } from '@/lib/taxonomy';
 import { getReferencesByAssetFunction, getReferencesByAxis, getReferencesByManipulationMode, getReferencesByOperationGoal, getReferencesByPatternKind, getReferencesByPillar, slugify } from '@/lib/library';
+import { type ReadScope, pageReadScope } from '@/server/read-scope';
 import type {
   AssetFunction,
   ManipulationMode,
@@ -49,9 +50,10 @@ const DIM_LABEL: Record<Dim, string> = {
 };
 
 export async function generateMetadata({ params }: ByPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { dimension, value } = await params;
   if (!VALID_DIMENSIONS.includes(dimension as Dim)) return { title: 'Introuvable' };
-  const resolved = await resolve(dimension as Dim, value);
+  const resolved = await resolve(dimension as Dim, value, scope);
   if (!resolved) return { title: 'Introuvable' };
   return {
     title: `${resolved.label} — ${DIM_LABEL[dimension as Dim]}`,
@@ -60,10 +62,11 @@ export async function generateMetadata({ params }: ByPageProps): Promise<Metadat
 }
 
 export default async function ByPage({ params }: ByPageProps) {
+  const scope = await pageReadScope();
   const { dimension, value } = await params;
   if (!VALID_DIMENSIONS.includes(dimension as Dim)) notFound();
 
-  const resolved = await resolve(dimension as Dim, value);
+  const resolved = await resolve(dimension as Dim, value, scope);
   if (!resolved) notFound();
 
   if (resolved.references.length === 0) notFound();
@@ -87,7 +90,7 @@ interface Resolved {
   references: Reference[];
 }
 
-async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
+async function resolve(dim: Dim, slug: string, scope: ReadScope): Promise<Resolved | undefined> {
   switch (dim) {
     case 'manipulation-mode': {
       const value = (Object.keys(MANIPULATION_MODE_LABELS) as ManipulationMode[]).find(
@@ -97,7 +100,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       return {
         label: MANIPULATION_MODE_LABELS[value],
         subtitle: MANIPULATION_MODE_DESCRIPTIONS[value],
-        references: await getReferencesByManipulationMode(value),
+        references: await getReferencesByManipulationMode(value, scope),
       };
     }
     case 'axis': {
@@ -107,7 +110,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       if (!value) return undefined;
       return {
         label: STRUCTURAL_AXIS_LABELS[value],
-        references: await getReferencesByAxis(value),
+        references: await getReferencesByAxis(value, scope),
       };
     }
     case 'pattern-kind': {
@@ -117,7 +120,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       if (!value) return undefined;
       return {
         label: PATTERN_KIND_LABELS[value],
-        references: await getReferencesByPatternKind(value),
+        references: await getReferencesByPatternKind(value, scope),
       };
     }
     case 'asset-function': {
@@ -127,7 +130,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       if (!value) return undefined;
       return {
         label: ASSET_FUNCTION_LABELS[value],
-        references: await getReferencesByAssetFunction(value),
+        references: await getReferencesByAssetFunction(value, scope),
       };
     }
     case 'operation-goal': {
@@ -137,7 +140,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       if (!value) return undefined;
       return {
         label: OPERATION_GOAL_LABELS[value],
-        references: await getReferencesByOperationGoal(value),
+        references: await getReferencesByOperationGoal(value, scope),
       };
     }
     case 'pillar': {
@@ -145,7 +148,7 @@ async function resolve(dim: Dim, slug: string): Promise<Resolved | undefined> {
       if (!(pillarKey in PILLAR_LABELS)) return undefined;
       return {
         label: `${pillarKey} · ${PILLAR_LABELS[pillarKey]}`,
-        references: await getReferencesByPillar(pillarKey),
+        references: await getReferencesByPillar(pillarKey, scope),
       };
     }
   }

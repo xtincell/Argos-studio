@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Reference, VictoryType } from '@/lib/types';
 import { VICTORY_LABELS } from '@/lib/taxonomy';
+import { PrivatePill } from '@/components/private-pill';
 
 function humanVictory(v: VictoryType): string {
   return VICTORY_LABELS[v] ?? v;
@@ -156,6 +157,7 @@ function ReferenceResultRow({ reference: r }: { reference: Reference }) {
         <div className="pills">
           <span className="pill butter">{r.sector}</span>
           <span className="pill">{r.marketPrimary}</span>
+          <PrivatePill visibility={r.visibility} />
           {r.manipulationMode && (
             <span className="pill sage">
               {r.manipulationMode.charAt(0) + r.manipulationMode.slice(1).toLowerCase()}

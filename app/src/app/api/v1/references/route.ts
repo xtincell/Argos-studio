@@ -1,12 +1,15 @@
 // GET /api/v1/references
 // Query params : ?brand=&agency=&sector=&market=&year=&victory=&patternKind=&manipulationMode=&pillar=&q=&limit=&offset=
 //
-// Returns a paginated list of references with full payload.
+// Returns a paginated list of references with full payload. Anonymous readers list public
+// references only; the administration key (Bearer or session) also lists private ones.
 
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getAllReferences, slugify } from '@/lib/library';
+import { requestReadScope, scopedJson } from '@/server/read-scope';
 
 export async function GET(request: NextRequest) {
+  const scope = requestReadScope(request);
   const sp = request.nextUrl.searchParams;
   const brand = sp.get('brand')?.toLowerCase();
   const agency = sp.get('agency')?.toLowerCase();
@@ -21,7 +24,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, Number.parseInt(sp.get('limit') ?? '24', 10) || 24));
   const offset = Math.max(0, Number.parseInt(sp.get('offset') ?? '0', 10) || 0);
 
-  const all = await getAllReferences();
+  const all = await getAllReferences(scope);
   const filtered = all.filter((r) => {
     if (brand && slugify(r.brandEmitter) !== brand) return false;
     if (agency && (!r.agencyCreator || slugify(r.agencyCreator) !== agency)) return false;
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest) {
   const total = filtered.length;
   const page = filtered.slice(offset, offset + limit);
 
-  return NextResponse.json({
+  return scopedJson({
     data: page,
     meta: {
       pagination: {
@@ -80,5 +83,5 @@ export async function GET(request: NextRequest) {
         q,
       },
     },
-  });
+  }, scope);
 }

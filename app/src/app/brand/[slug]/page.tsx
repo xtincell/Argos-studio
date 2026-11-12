@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { getReferencesByBrand, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ interface BrandPageProps {
 }
 
 export async function generateMetadata({ params }: BrandPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByBrand(slug);
+  const refs = await getReferencesByBrand(slug, scope);
   if (refs.length === 0) return { title: 'Marque introuvable' };
   const first = refs[0]!;
   return {
@@ -22,8 +24,9 @@ export async function generateMetadata({ params }: BrandPageProps): Promise<Meta
 }
 
 export default async function BrandPage({ params }: BrandPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByBrand(slug);
+  const refs = await getReferencesByBrand(slug, scope);
   if (refs.length === 0) notFound();
 
   const first = refs[0]!;

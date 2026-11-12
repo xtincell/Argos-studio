@@ -141,8 +141,9 @@ const ENDPOINTS: Array<{ section: string; intro: string; routes: Endpoint[] }> =
         method: 'POST',
         path: '/api/v1/ingest/dossier',
         description:
-          "Soumettre un dossier JSON conforme à research-dossier-v1. Idempotent par slug.",
+          "Soumettre un dossier JSON conforme à research-dossier-v1. Idempotent par slug. Clé d’administration requise. ?visibility=private admet un nouveau dossier dans l’espace privé ; un amendement garde la visibilité enregistrée.",
         example: `curl -X POST https://argos.studio/api/v1/ingest/dossier \\
+  -H "Authorization: Bearer $ARGOS_ADMIN_KEY" \\
   -H "Content-Type: application/json" \\
   -d @dossier.json`,
         responseShape: `// Succès (201 si nouveau, 200 si mise à jour)
@@ -153,6 +154,20 @@ const ENDPOINTS: Array<{ section: string; intro: string; routes: Endpoint[] }> =
 
 // Schema invalide (422)
 { "ok": false, "error": "INVALID_DOSSIER", "issues": [{ "path": "...", "message": "..." }] }`,
+      },
+      {
+        method: 'POST',
+        path: '/api/v1/references/{slug}/visibility',
+        description:
+          "Publier un dossier privé ou le retirer dans l’espace privé. Clé d’administration requise ; la publication revalide le dossier conservé. La date et le canal de la clé sont enregistrés.",
+        example: `curl -X POST https://argos.studio/api/v1/references/{slug}/visibility \\
+  -H "Authorization: Bearer $ARGOS_ADMIN_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"visibility":"public"}'`,
+        responseShape: `{ "ok": true, "slug": "...", "visibility": "public", "changed": true, "changedAt": "...", "changedBy": "admin-bearer" }
+
+// Dossier conservé refusé par les règles d'admission (409)
+{ "ok": false, "error": "PUBLICATION_REFUSED", "message": "...", "issues": [...] }`,
       },
     ],
   },
@@ -228,7 +243,8 @@ export default function ApiDocsPage() {
         >
           <h3 style={{ margin: 0, marginBottom: 10, fontSize: 17, fontWeight: 600 }}>Notes v1</h3>
           <ul style={{ margin: 0, paddingLeft: 22, display: 'grid', gap: 4 }}>
-            <li>Pas d'authentification — la lecture est ouverte.</li>
+            <li>La lecture des dossiers publics est ouverte, sans authentification.</li>
+            <li>Les dossiers privés ne se lisent qu’avec la clé d’administration ; sans elle, ils répondent comme une adresse inconnue et n’entrent dans aucune liste ni aucun compte.</li>
             <li>Pas de rate-limit appliqué — sera ajouté quand le trafic le demandera.</li>
             <li>Le format JSON est typé strictement (voir <code style={inlineCode}>app/src/lib/types.ts</code>).</li>
             <li>L'ingest valide via Zod (voir <Link href="/docs/research-dossier-spec" style={{ color: '#4a1810', textDecoration: 'underline' }}>la spec</Link>).</li>

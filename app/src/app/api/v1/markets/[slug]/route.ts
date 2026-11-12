@@ -1,25 +1,24 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getReferencesByMarket, slugify } from '@/lib/library';
+import { requestReadScope, scopedJson } from '@/server/read-scope';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const scope = requestReadScope(request);
   const { slug } = await params;
-  const refs = await getReferencesByMarket(slug);
-  if (refs.length === 0) {
-    return NextResponse.json({ ok: false, error: 'NOT_FOUND' }, { status: 404 });
-  }
+  const refs = await getReferencesByMarket(slug, scope);
   // Find the canonical spelling
   const first = refs[0];
   if (!first) {
-    return NextResponse.json({ ok: false, error: 'NOT_FOUND' }, { status: 404 });
+    return scopedJson({ ok: false, error: 'NOT_FOUND' }, scope, { status: 404 });
   }
   const name =
     slugify(first.marketPrimary) === slug
       ? first.marketPrimary
       : first.marketsSecondary.find((m) => slugify(m) === slug) ?? slug;
-  return NextResponse.json({
+  return scopedJson({
     data: {
       slug,
       name,
@@ -28,5 +27,5 @@ export async function GET(
       operationsCount: refs.length,
       references: refs,
     },
-  });
+  }, scope);
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { EntityIndexShell } from '@/components/entity-index-shell';
 import { listYears } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 export const metadata: Metadata = {
   title: 'Chronologie — Argos',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function YearsIndexPage() {
-  const years = await listYears();
+  const scope = await pageReadScope();
+  const years = await listYears(scope);
   return (
     <EntityIndexShell
       eyebrow="Chronologie"

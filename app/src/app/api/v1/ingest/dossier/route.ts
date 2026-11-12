@@ -3,16 +3,27 @@
 // Accepts a JSON body conforming to research-dossier-v1, validates it,
 // and writes the resulting Reference + Asset + axes + metrics + sources
 // into the database. Idempotent on the generated slug (resubmissions amend).
+// `?visibility=private` admits a new dossier in the private space (ADR-0010); without it a new
+// dossier is public, and an amendment keeps the stored visibility.
 
 import { Prisma } from '@prisma/client';
 import { NextResponse, type NextRequest } from 'next/server';
 import { ResearchDossierSchema } from '@/lib/research-dossier';
+import { parseVisibility } from '@/lib/visibility';
 import { requireAdmin } from '@/server/admin-access';
 import { ingestDossier, IngestValidationError } from '@/server/ingest';
 
 export async function POST(request: NextRequest) {
   const denied = requireAdmin(request);
   if (denied) return denied;
+  const requestedVisibility = request.nextUrl.searchParams.get('visibility');
+  const visibility = requestedVisibility === null ? undefined : parseVisibility(requestedVisibility);
+  if (visibility === null) {
+    return NextResponse.json(
+      { ok: false, error: 'INVALID_VISIBILITY', message: 'La visibilité doit être « public » ou « private ».' },
+      { status: 422 },
+    );
+  }
   let raw: unknown;
   try {
     raw = await request.json();
@@ -44,7 +55,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const expected = request.headers.get("if-match")?.replace(/^"|"$/g, "");
-    const { result, newlyCreated, updatedAt } = await ingestDossier(parseResult.data, expected);
+    const record = await ingestDossier(parseResult.data, expected, { visibility });
+    const { result, newlyCreated, updatedAt } = record;
     return NextResponse.json(
       {
         ok: true,
@@ -52,6 +64,7 @@ export async function POST(request: NextRequest) {
         assetCount: result.reference.assets.length,
         newlyCreated,
         updatedAt,
+        visibility: record.visibility,
         audit: result.audit,
       },
       { status: newlyCreated ? 201 : 200 },
@@ -61,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof IngestValidationError) {
       return NextResponse.json(
         { ok: false, error: err.code, message: err.message },
-        { status: err.code === "VERSION_CONFLICT" ? 409 : 422 },
+        { status: err.code === 'VERSION_CONFLICT' || err.code === 'VISIBILITY_CONFLICT' ? 409 : 422 },
       );
     }
     return NextResponse.json(
@@ -83,6 +96,7 @@ export async function GET() {
       schemaVersion: 'research-dossier-v1',
       authentication: 'Authorization: Bearer <ARGOS_ADMIN_KEY>, or an administration session opened at /admin/login',
       concurrency: 'Amending an existing reference requires If-Match with its current version (ETag of ?format=dossier); a stale version receives 409.',
+      visibility: '?visibility=private admits a new dossier in the private space, read with the administration key only and purged 24 months after its last modification unless published; without it a new dossier is public. An amendment keeps the stored visibility; change it with POST /api/v1/references/{slug}/visibility.',
       docs: '/docs/research-dossier-spec',
       template: '/dossier-template.json',
       example: '/dossier-example.json',

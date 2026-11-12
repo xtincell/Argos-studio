@@ -34,3 +34,43 @@ test('native dossier migration preserves existing reference, asset and source re
     assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   } finally { db.close(); }
 });
+
+// Private space (owner decision, 12 November 2026): every existing reference stays public.
+test('private space migration keeps every existing dossier public and unchanged', async () => {
+  const { readdirSync } = await import('node:fs');
+  const { ResearchDossierSchema, dossierToReference } = await import('../src/lib/research-dossier');
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec(readFileSync('prisma/migrations/20260512171730_init/migration.sql', 'utf8'));
+    db.exec(readFileSync('prisma/migrations/20261019112000_native_dossier_flow/migration.sql', 'utf8'));
+    const bundled = readdirSync('public').filter((name) => name.startsWith('dossier-') && name.endsWith('.json')
+      && !name.includes('template') && !name.includes('example'));
+    assert.equal(bundled.length, 8, 'The eight public dossiers of the repository.');
+    const insert = db.prepare(`INSERT INTO Reference (id,slug,title,brandEmitter,sector,marketPrimary,emissionYear,patternKind,
+      manipulationMode,funnelStage,confidence,summary,performanceOverallAttribution,ingestPath,sourceDossierJson,updatedAt)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    for (const name of bundled) {
+      const dossier = ResearchDossierSchema.parse(JSON.parse(readFileSync(`public/${name}`, 'utf8')));
+      const { reference: r } = dossierToReference(dossier);
+      insert.run(r.id, r.slug, r.title, r.brandEmitter, r.sector, r.marketPrimary, r.emissionYear, r.patternKind,
+        r.manipulationMode, r.funnelStage, r.confidence, r.summary, r.performance.overallAttribution, 'manual-dossier',
+        JSON.stringify(dossier), 1_762_000_000_000);
+    }
+    db.exec(`INSERT INTO Asset (id,referenceId,kind,function,role,url,aspectRatio,text)
+      SELECT 'asset-' || id, id, 'TEXT', 'TAGLINE', 'HERO', '', '16:9', 'Prior exact text' FROM Reference`);
+    const before = db.prepare('SELECT * FROM Reference ORDER BY id').all();
+    const assets = db.prepare('SELECT * FROM Asset ORDER BY id').all();
+    db.exec(readFileSync('prisma/migrations/20261112090000_private_space/migration.sql', 'utf8'));
+    const after = db.prepare('SELECT * FROM Reference ORDER BY id').all();
+    assert.equal(after.length, 8);
+    for (const [index, row] of after.entries()) {
+      const { visibility, visibilityChangedAt, visibilityChangedBy, ...rest } = row;
+      assert.deepEqual([visibility, visibilityChangedAt, visibilityChangedBy], ['public', null, null]);
+      assert.deepEqual(rest, { ...before[index] });
+    }
+    assert.deepEqual(db.prepare('SELECT * FROM Asset ORDER BY id').all(), assets);
+    assert.deepEqual({ ...db.prepare('SELECT COUNT(*) AS n FROM VisibilityChange').get() }, { n: 0 });
+    assert.deepEqual({ ...db.prepare('SELECT COUNT(*) AS n FROM PrivatePurgeRun').get() }, { n: 0 });
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { db.close(); }
+});

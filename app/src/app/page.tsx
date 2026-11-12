@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FreshTime } from '@/components/fresh-time';
+import { PrivatePill } from '@/components/private-pill';
 import { latestTimestamp } from '@/lib/freshness';
 import { countResearchSources, getAllAssets, getAllReferences, listBrands, listSectors } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import { getHeroAsset, type Asset, type AssetFunction, type Reference } from '@/lib/types';
 
@@ -20,15 +22,16 @@ const HOME_FILTERS: Record<string, (r: Reference) => boolean> = {
 };
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps) {
+  const scope = await pageReadScope();
   const sp = (await searchParams) ?? {};
   const activeFilter = Array.isArray(sp.f) ? sp.f[0] : sp.f;
   const filterPredicate =
     activeFilter && HOME_FILTERS[activeFilter] ? HOME_FILTERS[activeFilter] : null;
 
-  const all = await getAllReferences();
-  const brands = await listBrands();
-  const sectors = await listSectors();
-  const totalSources = await countResearchSources();
+  const all = await getAllReferences(scope);
+  const brands = await listBrands(scope);
+  const sectors = await listSectors(scope);
+  const totalSources = await countResearchSources(scope);
 
   // Featured = highest composite score
   const featured =
@@ -113,7 +116,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
   };
 
   // Featured assets — show 6 hero/primary assets across brands, asset-first
-  const allAssetsList = await getAllAssets();
+  const allAssetsList = await getAllAssets(scope);
   const featuredAssets = (() => {
     const picks: typeof allAssetsList = [];
     const seenBrands = new Set<string>();
@@ -614,6 +617,7 @@ function SecondaryCard({ reference, index }: { reference: Reference; index: numb
       <div className="top">
         <div className="pills">
           <span className="pill butter">{reference.emissionYear}</span>
+          <PrivatePill visibility={reference.visibility} />
           {accent && <span className={`pill ${accentClass}`}>{humanVictory(accent)}</span>}
         </div>
         <div className="more">⋯</div>

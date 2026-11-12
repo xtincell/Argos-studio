@@ -19,6 +19,7 @@ import {
   listPatternKinds,
   listStructuralAxes,
 } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import type {
   AssetFunction,
   ManipulationMode,
@@ -127,14 +128,15 @@ const VICTORY_DEFINITIONS: Record<VictoryType, string> = {
 };
 
 export default async function GlossaryPage() {
+  const scope = await pageReadScope();
   const [axesFacets, kindsFacets, modesFacets, fnsFacets, goalsFacets, awardsFacets] =
     await Promise.all([
-      listStructuralAxes(),
-      listPatternKinds(),
-      listManipulationModes(),
-      listAssetFunctions(),
-      listOperationGoals(),
-      listAwards(),
+      listStructuralAxes(scope),
+      listPatternKinds(scope),
+      listManipulationModes(scope),
+      listAssetFunctions(scope),
+      listOperationGoals(scope),
+      listAwards(scope),
     ]);
 
   const axisCount = new Map(axesFacets.map((f) => [f.value, f.count]));

@@ -24,6 +24,7 @@ import {
   listStructuralAxes,
   listYears,
 } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 export const metadata: Metadata = {
   title: 'Browse the library',
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BrowsePage() {
+  const scope = await pageReadScope();
   const [
     refs,
     assets,
@@ -47,19 +49,19 @@ export default async function BrowsePage() {
     functions,
     goals,
   ] = await Promise.all([
-    getAllReferences(),
-    getAllAssets(),
-    listBrands(),
-    listAgencies(),
-    listMarkets(),
-    listYears(),
-    listSectors(),
-    listAwards(),
-    listManipulationModes(),
-    listPatternKinds(),
-    listStructuralAxes(),
-    listAssetFunctions(),
-    listOperationGoals(),
+    getAllReferences(scope),
+    getAllAssets(scope),
+    listBrands(scope),
+    listAgencies(scope),
+    listMarkets(scope),
+    listYears(scope),
+    listSectors(scope),
+    listAwards(scope),
+    listManipulationModes(scope),
+    listPatternKinds(scope),
+    listStructuralAxes(scope),
+    listAssetFunctions(scope),
+    listOperationGoals(scope),
   ]);
 
   return (

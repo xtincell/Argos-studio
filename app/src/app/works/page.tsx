@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAllReferences } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import type { Reference } from '@/lib/types';
+import { PrivatePill } from '@/components/private-pill';
 
 export const metadata: Metadata = {
   title: 'Toutes les opérations — bibliothèque',
@@ -13,8 +15,9 @@ interface WorksPageProps {
 }
 
 export default async function WorksPage({ searchParams }: WorksPageProps) {
+  const scope = await pageReadScope();
   const { sort = 'recent' } = await searchParams;
-  const refs = sortRefs(await getAllReferences(), sort);
+  const refs = sortRefs(await getAllReferences(scope), sort);
   const totalAssets = refs.reduce((sum, r) => sum + r.assets.length, 0);
   const totalMetrics = refs.reduce((sum, r) => sum + r.performance.metrics.length, 0);
 
@@ -102,6 +105,7 @@ function WorkRow({ reference: r }: { reference: Reference }) {
         <div className="pills">
           <span className="pill butter">{r.sector}</span>
           <span className="pill">{r.marketPrimary}</span>
+          <PrivatePill visibility={r.visibility} />
         </div>
         <h3>{r.title}</h3>
         <div className="by">

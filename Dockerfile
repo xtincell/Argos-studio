@@ -8,6 +8,10 @@
 #
 #   docker build -t argos-studio --build-arg NEXT_PUBLIC_SITE_URL=https://argos.example.org .
 #   docker run -v argos-data:/data -e ARGOS_ADMIN_KEY=… -p 3000:3000 argos-studio
+#
+# Private space (ADR-0010): private dossiers are purged 24 months after their last modification by
+# a daily run inside the server (ARGOS_PRIVATE_PURGE=off disables it) and by
+# `argos-purge-private --dry-run | --purge`.
 
 ARG NODE_IMAGE=node:22-bookworm-slim
 
@@ -75,6 +79,8 @@ COPY --from=build /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=build /app/prisma/migrations ./prisma/migrations
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/argos-entrypoint
 COPY --chmod=0755 docker/backup.cjs /usr/local/bin/argos-backup
+# Retention purge of the private space (ADR-0010): asks the running server, with the key.
+COPY --chmod=0755 docker/purge-private.cjs /usr/local/bin/argos-purge-private
 # The application stays owned by root and read-only for the server. Only /data (the library,
 # a new named volume takes this ownership) and .next/cache (image optimisation) are writable.
 RUN install -d -m 0700 -o node -g node /data \

@@ -5,6 +5,7 @@
 // the app keeps consuming the clean Reference type from ./types.
 
 import { PrismaClient, type Prisma } from '@prisma/client';
+import { lastModificationOf, privatePurgeDueAt, type ReadScope, type Visibility } from './visibility';
 import type {
   Asset,
   AssetExtractionMethod,
@@ -36,7 +37,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /**
- * The shape of a Reference row loaded with all its relations.
+ * The shape of a Reference row loaded with all its relations, every filiation included
+ * (administration scope and writers). Readers use `referenceInclude(scope)`.
  * Mirrors `prisma.reference.findX({ include: REFERENCE_INCLUDE })`.
  */
 export const REFERENCE_INCLUDE = {
@@ -60,15 +62,41 @@ export const REFERENCE_INCLUDE = {
   },
 } satisfies Prisma.ReferenceInclude;
 
+/**
+ * Relations read by a scope. The public scope drops every filiation whose other end is private:
+ * a public dossier never names, links or counts a private one.
+ */
+export function referenceInclude(scope: ReadScope): typeof REFERENCE_INCLUDE {
+  if (scope === 'admin') return REFERENCE_INCLUDE;
+  return {
+    ...REFERENCE_INCLUDE,
+    filiationsFrom: { ...REFERENCE_INCLUDE.filiationsFrom, where: { toRef: { visibility: 'public' } } },
+    filiationsTo: { ...REFERENCE_INCLUDE.filiationsTo, where: { fromRef: { visibility: 'public' } } },
+  } as typeof REFERENCE_INCLUDE;
+}
+
 type ReferenceRow = Prisma.ReferenceGetPayload<{
   include: typeof REFERENCE_INCLUDE;
 }>;
 
-export function dbToReference(row: ReferenceRow): Reference {
+/** The administration metadata of visibility and retention travel with the key only. */
+function visibilityFields(row: ReferenceRow, scope: ReadScope): Partial<Reference> {
+  const visibility = (row.visibility === 'private' ? 'private' : 'public') as Visibility;
+  if (scope !== 'admin') return { visibility };
+  return {
+    visibility,
+    visibilityChangedAt: row.visibilityChangedAt?.toISOString(),
+    visibilityChangedBy: row.visibilityChangedBy ?? undefined,
+    purgeDueAt: visibility === 'private' ? privatePurgeDueAt(lastModificationOf(row)).toISOString() : undefined,
+  };
+}
+
+export function dbToReference(row: ReferenceRow, scope: ReadScope = 'public'): Reference {
   return {
     id: row.id,
     updatedAt: row.updatedAt.toISOString(),
     hasSourceDossier: row.sourceDossierJson !== null,
+    ...visibilityFields(row, scope),
     slug: row.slug,
     title: row.title,
     brandEmitter: row.brandEmitter,

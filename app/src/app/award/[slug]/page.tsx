@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { VICTORY_LABELS } from '@/lib/taxonomy';
 import { getReferencesByAward, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import type { VictoryType } from '@/lib/types';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
@@ -28,10 +29,11 @@ export async function generateMetadata({ params }: AwardPageProps): Promise<Meta
 }
 
 export default async function AwardPage({ params }: AwardPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
   const award = findAward(slug);
   if (!award) notFound();
-  const refs = await getReferencesByAward(award);
+  const refs = await getReferencesByAward(award, scope);
   if (refs.length === 0) notFound();
 
   const brands = Array.from(new Set(refs.map((r) => r.brandEmitter)));

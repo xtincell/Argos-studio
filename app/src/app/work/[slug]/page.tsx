@@ -2,12 +2,15 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { PrivatePill } from '@/components/private-pill';
 import { ReferenceActions } from '@/components/reference-actions';
+import { VisibilityPanel } from '@/components/visibility-panel';
 import { WorkViewTabs } from '@/components/work-view-tabs';
 import { FreshTime } from '@/components/fresh-time';
 import { JsonLd } from '@/components/json-ld';
 import { buildArticleJsonLd } from '@/lib/article-json-ld';
 import { getReferenceBySlug } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import {
   type Asset,
   type PerformanceMetric,
@@ -21,11 +24,13 @@ export const dynamic = 'force-dynamic';
 
 interface WorkPageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ visibilite?: string | string[] }>;
 }
 
 export async function generateMetadata({ params }: WorkPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const reference = await getReferenceBySlug(slug);
+  const reference = await getReferenceBySlug(slug, scope);
   if (!reference) return { title: 'Reference not found' };
   const fullTitle = `${reference.title} — ${reference.brandEmitter}`;
   return {
@@ -55,13 +60,17 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
     alternates: {
       canonical: `/work/${reference.slug}`,
     },
+    // Read with the administration key only: never indexed.
+    ...(reference.visibility === 'private' ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
-export default async function ReadView({ params }: WorkPageProps) {
+export default async function ReadView({ params, searchParams }: WorkPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const reference = await getReferenceBySlug(slug);
+  const reference = await getReferenceBySlug(slug, scope);
   if (!reference) notFound();
+  const outcome = (await searchParams)?.visibilite;
 
   const hero = getHeroAsset(reference);
   const sidebarMetrics = pickSidebarMetrics(reference);
@@ -72,6 +81,9 @@ export default async function ReadView({ params }: WorkPageProps) {
       <JsonLd data={jsonLd} />
       <div className="wrap">
         <WorkViewTabs slug={slug} active="read" />
+        {scope === 'admin' && (
+          <VisibilityPanel reference={reference} outcome={Array.isArray(outcome) ? outcome[0] : outcome} />
+        )}
         <ReferenceActions reference={reference} />
         <DossierGrid reference={reference} hero={hero} sidebarMetrics={sidebarMetrics} />
         <DossierBody reference={reference} />
@@ -125,6 +137,7 @@ function DossierGrid({
             <span className="pill coral">
               <span className="sp" style={{ color: '#fff' }}>✦</span> Hero
             </span>
+            <PrivatePill visibility={reference.visibility} />
             {reference.victoryTypes.slice(0, 2).map((v) => (
               <span key={v} className="pill">
                 {humanVictory(v)}

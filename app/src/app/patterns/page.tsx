@@ -6,6 +6,7 @@ import {
   listStructuralAxes,
   listAwards,
 } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import {
   PATTERN_KIND_LABELS,
   STRUCTURAL_AXIS_LABELS,
@@ -37,11 +38,12 @@ const MODE_DESC_FR: Record<ManipulationMode, string> = {
 };
 
 export default async function PatternsView() {
+  const scope = await pageReadScope();
   const [patternKinds, manipulationModes, axes, awards] = await Promise.all([
-    listPatternKinds(),
-    listManipulationModes(),
-    listStructuralAxes(),
-    listAwards(),
+    listPatternKinds(scope),
+    listManipulationModes(scope),
+    listStructuralAxes(scope),
+    listAwards(scope),
   ]);
 
   // Sort each facet by descending count, then alpha

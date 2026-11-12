@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AssetMiniCard } from '@/components/asset-mini-card';
 import { ASSET_FUNCTION_GROUPS, ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import { getAllAssets, listAssetFunctions, slugify, type AssetWithRef } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import type { AssetFunction, AssetKind, AssetRole } from '@/lib/types';
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ const ROLE_LABELS: Record<AssetRole, string> = {
 };
 
 export default async function AssetsSearchPage({ searchParams }: AssetsPageProps) {
+  const scope = await pageReadScope();
   const sp = await searchParams;
   const query = (sp.q ?? '').trim().toLowerCase();
   const fn = parseFunction(sp.function);
@@ -50,9 +52,9 @@ export default async function AssetsSearchPage({ searchParams }: AssetsPageProps
   const brand = sp.brand?.trim() || undefined;
   const sector = sp.sector?.trim() || undefined;
 
-  const all = await getAllAssets();
+  const all = await getAllAssets(scope);
   const items = filterAssets(all, { query, fn, kind, role, brand, sector });
-  const functionFacets = await listAssetFunctions();
+  const functionFacets = await listAssetFunctions(scope);
 
   // Compute available kind/role/brand/sector facets from the current filtered set's
   // siblings so the rail reflects the data.

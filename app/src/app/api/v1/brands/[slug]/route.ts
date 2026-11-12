@@ -1,28 +1,25 @@
 // GET /api/v1/brands/{slug} — references emitted by this brand.
 
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getReferencesByBrand } from '@/lib/library';
+import { requestReadScope, scopedJson } from '@/server/read-scope';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const scope = requestReadScope(request);
   const { slug } = await params;
-  const refs = await getReferencesByBrand(slug);
-  if (refs.length === 0) {
-    return NextResponse.json(
-      { ok: false, error: 'NOT_FOUND', message: `No brand with slug "${slug}"` },
-      { status: 404 },
-    );
-  }
+  const refs = await getReferencesByBrand(slug, scope);
   const first = refs[0];
   if (!first) {
-    return NextResponse.json(
+    return scopedJson(
       { ok: false, error: 'NOT_FOUND', message: `No brand with slug "${slug}"` },
+      scope,
       { status: 404 },
     );
   }
-  return NextResponse.json({
+  return scopedJson({
     data: {
       slug,
       name: first.brandEmitter,
@@ -34,5 +31,5 @@ export async function GET(
       operationsCount: refs.length,
       references: refs,
     },
-  });
+  }, scope);
 }

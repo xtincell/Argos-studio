@@ -84,3 +84,4 @@ Decision-makers: [Daedalus, Hephaistos, ...]
 | 0007 | Taxonomie verrouillée pour v1 | Accepted | 2026-05-12 |
 | 0008 | Two-layer crawling — source crawlers + brand watch agents | Accepted | 2026-05-12 |
 | 0009 | VPS du propriétaire, SQLite sur volume et clé unique d’administration | Accepted | 2026-11-11 |
+| 0010 | Espace privé détenu par UPgraders, purgé 24 mois après la dernière modification | Accepted | 2026-11-12 |
