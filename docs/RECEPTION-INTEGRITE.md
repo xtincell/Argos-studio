@@ -1,3 +1,58 @@
+# Adresses introuvables en HTTP 404 (12 novembre 2026)
+
+Défaut constaté lors de la réception de l’espace privé (section suivante) : toute page dynamique
+inconnue répondait HTTP 200 avec la page introuvable. Aucun fournisseur, aucune base opérateur,
+aucun déploiement touchés ; aucun modèle ni migration.
+
+1. **Cause.** Le `loading.tsx` racine plaçait toutes les pages derrière une frontière Suspense.
+   Next envoie le statut HTTP avec le premier octet : la réponse partait avec le squelette, en
+   200, avant que la page lève `notFound()`. Relevé sur le serveur construit de `main`
+   (`1809166`) : fiche, vue analytique, actif, marque, agence, victoire, marché, secteur, année
+   et dimension en 200, y compris avec l’agent `Googlebot` ; seule une adresse sans route en 404.
+2. **Règle.** Aucun chargement n’englobe une page qui peut répondre introuvable, sauf si la mise
+   en page du même segment, rendue avant la frontière, a déjà résolu l’existence. Garde statique
+   `app/tests/not-found-status.test.ts`, qui liste aussi les dix types de pages concernés pour
+   qu’un nouveau type rejoigne les sondes du serveur construit.
+3. **Correction.** `loading.tsx` racine retiré. Squelette gardé sur les listes (groupe de routes
+   `(listes)`, adresses inchangées) et sur la fiche, sa vue analytique et la page d’actif, dont
+   la mise en page vérifie l’existence par une lecture indexée au même filtre de visibilité que
+   la page (`referenceExists`, `assetExists` dans `src/lib/library.ts`). Les pages d’entité
+   répondent sans squelette : leur existence demande la lecture de toute la bibliothèque, qu’un
+   préchargement de lien referait à chaque lien visible. Page introuvable titrée « Introuvable »,
+   `noindex, follow`.
+4. **Espace privé (ADR-0010).** Sans la clé, un dossier privé répond HTTP 404 exactement comme
+   une adresse inconnue, sur la fiche, la vue analytique, l’actif, la marque, l’agence, le
+   marché, le secteur et l’année ; l’image de partage reste la carte générique identique. Avec
+   la session, ces sept pages répondent 200 et montrent le dossier.
+5. **Pannes.** Une lecture en échec n’est jamais une absence : la fiche et les pages d’entité
+   répondent désormais HTTP 500 avec la page d’erreur lisible et « Réessayer » ; les listes, déjà
+   en flux derrière leur squelette, gardent 200 et la même page d’erreur.
+
+Recettes, avant (`main` `1809166`, avec les tests finaux) puis après :
+
+- `npm test` : 56 tests ; avant 55 verts / 1 rouge (le chargement racine englobe les dix
+  pages) ; après 56 verts.
+- `node tests/production-flow.mjs` : avant, rouge à la première sonde (`/work/…` en 200) ;
+  après, vert à chacune de huit exécutions. Il éprouve 15 adresses inconnues en 404 avec la page introuvable, 11
+  paires privé/inconnu identiques (404 hors image de partage) et 7 pages privées en 200 avec la
+  session.
+- `npm run test:ui` : 26 scénarios ; avant 24 verts / 2 rouges (dossier privé et adresse
+  inconnue en 200 ; fiche en panne en 200) ; après 26 verts. Le scénario du squelette retient la
+  requête de navigation : la liste, la fiche et l’actif affichent le squelette avant la réponse
+  du serveur. Vert sur `main`, il est rouge sur une variante sans chargement (navigation qui
+  attend le serveur), comme la garde statique de conservation du squelette.
+- Typage sans erreur ; lint sans erreur, 24 avertissements identiques à `main` ; build exit 0.
+- `docker/recette.sh` resserrée (404 pour l’adresse inconnue et pour le dossier privé sans
+  session, égalité des deux, page introuvable, marque inconnue en 404, dossier privé en 200 avec
+  la session) : syntaxe vérifiée, non exécutée localement faute de démon Docker ; elle tourne
+  dans le job CI `docker`.
+
+Restent ouverts : une course étroite entre la vérification d’existence et la lecture de la page
+(dossier rendu privé ou purgé entre les deux) donnerait encore la page introuvable en 200 ; les
+pages d’entité n’ont plus de squelette pendant la navigation.
+
+---
+
 # Espace privé et rétention (12 novembre 2026)
 
 Décision du propriétaire du 12 novembre ([ADR-0010](decisions/0010-espace-prive-upgraders-retention.md)) :
@@ -42,7 +97,8 @@ Recettes, rouges sur `main` (`34af965`) puis vertes sur la branche :
 Constats en passant : l’image Open Graph d’une fiche échouait toujours (bloc à plusieurs enfants
 refusé par le moteur d’image) ; corrigée. Une adresse dynamique inconnue est servie avec la page
 404 mais un statut HTTP 200 (flux ouvert par le `loading.tsx` racine avant la résolution) ;
-non modifié ici, un dossier privé répond exactement pareil.
+non modifié ici, un dossier privé répond exactement pareil. Corrigé ensuite : voir « Adresses
+introuvables en HTTP 404 » ci-dessus.
 
 Restent ouverts : la rotation des copies `argos-backup` (une copie antérieure à une purge garde
 les dossiers purgés ; la purge les compte et le signale), l’identité des administrateurs (la clé

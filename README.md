@@ -76,7 +76,7 @@ Un dossier est **public** (défaut, tous les dossiers existants) ou **privé**. 
 appartient à UPgraders et ne se lit qu’avec la clé d’administration (en-tête
 `Authorization: Bearer` ou session de `/admin/login`). Sans elle, il n’existe pas : absent des
 listes, de la recherche, des compteurs et facettes, du plan du site, des images de partage, des
-exports et de l’API ; sa fiche et son API répondent exactement comme une adresse inconnue, et une
+exports et de l’API ; sa fiche et son API répondent exactement comme une adresse inconnue (HTTP 404), et une
 filiation d’un dossier public vers lui est retirée de la lecture publique.
 
 ```bash

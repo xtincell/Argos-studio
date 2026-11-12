@@ -1,5 +1,41 @@
 # Changelog Argos
 
+## Adresses introuvables en HTTP 404 — non publiée (2026-11-12)
+
+- Défaut : toute page dynamique inconnue (dossier, vue analytique, actif, marque, agence,
+  marché, secteur, année, victoire, dimension) répondait HTTP 200 avec la page introuvable, y
+  compris pour un robot d’indexation. Cause : le `loading.tsx` racine plaçait toutes les pages
+  derrière une frontière Suspense ; Next envoie le statut avec le premier octet, et la réponse
+  partait avec le squelette avant que la page lève `notFound()`. Seule une adresse sans route
+  répondait 404.
+- Correction : le `loading.tsx` racine est retiré ; aucun chargement n’englobe plus une page qui
+  peut répondre introuvable. Le squelette (`PageSkeleton`) reste :
+  - sur les listes, qui ne répondent jamais introuvable (accueil, opérations, recherche,
+    parcours, actifs, patterns, glossaire, index des marques, agences, marchés, secteurs,
+    années et victoires), regroupées sans changement d’adresse dans le groupe de routes
+    `(listes)` ;
+  - sur la fiche, sa vue analytique et la page d’actif : leur mise en page résout l’existence
+    avant la frontière (`referenceExists`, `assetExists` : une lecture indexée, même filtre de
+    visibilité que la page).
+  Les pages d’entité (marque, agence, marché, secteur, année, victoire, dimension) n’existent
+  qu’après lecture de toute la bibliothèque : elles répondent sans squelette, plutôt que de
+  refaire cette lecture à chaque préchargement de lien.
+- ADR-0010 : sans la clé, la page d’un dossier privé (fiche, vue analytique, actif, marque,
+  agence, marché, secteur, année) répond HTTP 404 exactement comme une adresse inconnue ; avec
+  la session, HTTP 200.
+- La page introuvable porte le titre « Introuvable » et `noindex, follow`, au lieu du titre
+  par défaut et d’un `index, follow` contraire au `noindex` ajouté par Next.
+- Une panne de lecture de la fiche ou d’une page d’entité répond HTTP 500 (et non plus 200)
+  avec la même page d’erreur lisible ; elle ne devient jamais la page introuvable. Les listes,
+  derrière leur squelette, gardent 200 et la page d’erreur. `/admin` redirige par un vrai
+  HTTP 307 (observé après correction).
+- Tests : `not-found-status.test.ts` (3 cas, garde de structure ; 1 rouge sur `main`) ;
+  `production-flow.mjs` éprouve 15 adresses inconnues (tous types de pages) en 404, 11 paires
+  privé/inconnu identiques (404, sauf l’image de partage générique) et 7 pages privées lues par
+  la session en 200 (rouge sur `main` à la première adresse) ; `test:ui` 26 scénarios (24 verts / 2 rouges sur `main`), dont le
+  squelette gardé pendant la navigation vers une liste, une fiche et un actif ; recette Docker
+  resserrée (404 pour l’adresse inconnue et le dossier privé, 200 avec la session).
+
 ## Espace privé — non publiée (2026-11-12)
 
 Décision du propriétaire, ADR-0010 : un espace privé détenu par UPgraders, lu avec la clé
