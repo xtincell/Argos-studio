@@ -474,6 +474,15 @@ test('une panne de lecture serveur est lisible et « Réessayer » relit réelle
     const retry = page.getByRole('button', { name: 'Réessayer' });
     await retry.waitFor();
     assert.match(await content(page).innerText(), /indisponible/i);
+    // A fiche resolves its existence before streaming: a failed read is a server error, never
+    // the page of an unknown address.
+    const fiche = await openPage();
+    try {
+      const failed = await fiche.goto(`${origin}/work/${corpus.slug}`, { waitUntil: 'networkidle' });
+      assert.equal(failed.status(), 500, 'A read failure of a fiche answers HTTP 500, not 404.');
+      await fiche.getByRole('button', { name: 'Réessayer' }).waitFor();
+      assert.doesNotMatch(await content(fiche).innerText(), /Pas encore dans la/);
+    } finally { await fiche.close(); }
     db.exec('ALTER TABLE "Reference_ui_receipt_hidden" RENAME TO "Reference"');
     hidden = false;
     await retry.click();
@@ -651,6 +660,53 @@ test('l’accueil date la dernière mise à jour de la bibliothèque', async () 
 });
 
 // ---------------------------------------------------------------------------------------------
+// Loading: the skeleton is kept where it counts, without opening the response of a page that
+// may answer not found (its existence is resolved before the loading boundary).
+
+test('une liste, une fiche et un actif s’ouvrent sur le squelette de chargement pendant leur lecture', async () => {
+  const page = await openPage();
+  const prefetched = new Set();
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    if (url.searchParams.has('_rsc') && response.request().headers()['next-router-prefetch'] === '1') prefetched.add(url.pathname);
+  });
+  // The navigation request itself (not its prefetch) is held, to observe what is shown meanwhile.
+  let held;
+  await page.route((url) => url.searchParams.has('_rsc'), async (route) => {
+    const request = route.request();
+    if (new URL(request.url()).pathname === held && request.headers()['next-router-prefetch'] !== '1') {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    await route.fallback();
+  });
+  const through = async (link, path) => {
+    await link.scrollIntoViewIfNeeded();
+    for (let waited = 0; !prefetched.has(path) && waited < 10000; waited += 100) await page.waitForTimeout(100);
+    assert.ok(prefetched.has(path), `${path} must be prefetched by its link.`);
+    held = path;
+    try {
+      await link.click();
+      // The router commits the prefetched loading state before the server has answered.
+      await page.waitForURL(`${origin}${path}`, { timeout: 1500 });
+      assert.equal(await content(page).locator('h1').count(), 0, `${path}: the skeleton is shown while the page is read.`);
+      await content(page).locator('h1').first().waitFor({ state: 'visible', timeout: 10000 });
+    } finally { held = undefined; }
+  };
+  try {
+    await visit(page, '/');
+    await through(page.locator('header.topbar nav a', { hasText: 'Assets' }), '/assets');
+    assert.match(await content(page).locator('h1').first().innerText(), /Chercher un asset/);
+    await visit(page, '/works');
+    await through(content(page).locator(`a[href="/work/${corpus.slug}"]`).first(), `/work/${corpus.slug}`);
+    assert.match(await content(page).innerText(), /Synthetic interface receipt/);
+    await visit(page, '/');
+    const asset = content(page).locator('a[href^="/asset/"]').first();
+    const assetPath = await asset.getAttribute('href');
+    await through(asset, assetPath);
+  } finally { await page.close(); }
+});
+
+// ---------------------------------------------------------------------------------------------
 // Private space (ADR-0010): absent without the key, read and published with it.
 
 test('un dossier privé n’existe pas sans la clé, se lit avec la session et se publie explicitement', async () => {
@@ -664,10 +720,11 @@ test('un dossier privé n’existe pas sans la clé, se lit avec la session et s
   const anonymous = await openPage();
   const admin = await openPage(undefined, { admin: true });
   try {
-    // Without the key the dossier page is the page of an unknown address.
+    // Without the key the dossier page is the page of an unknown address: HTTP 404.
     const hidden = await anonymous.goto(`${origin}/work/${slug}`, { waitUntil: 'networkidle' });
     const unknown = await anonymous.context().newPage();
     const absent = await unknown.goto(`${origin}/work/adresse-inconnue-ui`, { waitUntil: 'networkidle' });
+    assert.equal(absent.status(), 404, 'An unknown dossier answers HTTP 404.');
     assert.equal(hidden.status(), absent.status());
     await anonymous.getByRole('heading', { name: /Pas encore dans la bibliothèque/ }).waitFor();
     assert.equal(await anonymous.title(), await unknown.title());

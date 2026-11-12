@@ -85,14 +85,15 @@ PSLUG=$(echo "$created" | head -1 | node -e "let s='';process.stdin.on('data',c=
 ok "admission dans l'espace privé : HTTP 201 ($PSLUG)"
 expect 404 "dossier privé sans clé, comme une adresse inconnue" "$BASE/api/v1/references/$PSLUG"
 # ADR-0010 : sans session, la page d'un dossier privé répond exactement comme une adresse
-# inconnue (même statut). Une page dynamique inconnue répond aujourd'hui 200 avec la page
-# introuvable, car le chargement racine démarre la réponse : ce défaut, antérieur, est suivi
-# à part. La recette défend l'invariant, pas un statut que ni l'une ni l'autre ne rendent.
+# inconnue : HTTP 404 avec la page introuvable, pour l'une comme pour l'autre.
 unknown=$(code "$BASE/work/argos-recette-adresse-inconnue")
 private=$(code "$BASE/work/$PSLUG")
+[ "$unknown" = 404 ] || fail "page d'une adresse inconnue : HTTP $unknown au lieu de 404"
 [ "$private" = "$unknown" ] || fail "page du dossier privé sans session : HTTP $private, adresse inconnue : HTTP $unknown"
 curl -s "$BASE/work/$PSLUG" | grep -qF 'Recette Docker espace privé' && fail "la page du dossier privé montre son titre sans session"
-ok "page du dossier privé sans session : comme une adresse inconnue (HTTP $private), sans son titre"
+curl -s "$BASE/work/$PSLUG" | grep -qF 'Pas encore dans la' || fail "la page du dossier privé sans session n'est pas la page introuvable"
+ok "page du dossier privé sans session : HTTP $private comme une adresse inconnue, page introuvable, sans son titre"
+expect 404 "page d'une marque inconnue" "$BASE/brand/argos-recette-marque-inconnue"
 expect 200 "dossier privé lu avec la clé" -H "Authorization: Bearer $KEY" "$BASE/api/v1/references/$PSLUG"
 curl -s "$BASE/api/v1/references?limit=100" | grep -q "$PSLUG" && fail "le dossier privé apparaît dans la liste publique"
 ok "absent de la liste publique"
@@ -115,6 +116,7 @@ case "$cookie" in *"$KEY"*) fail "le cookie contient la clé" ;; esac
 ok "session : cookie HttpOnly, Secure, SameSite=Strict, signé, sans la clé"
 session=$(echo "$cookie" | sed -E 's/^[Ss]et-[Cc]ookie: ([^;]*).*/\1/')
 expect 200 "page d'administration avec session" -H "Cookie: $session" "$BASE/admin/ingest"
+expect 200 "page du dossier privé avec session" -H "Cookie: $session" "$BASE/work/$PSLUG"
 mode=$(docker exec "$NAME" stat -c '%a %U' /data/argos.db)
 [ "$mode" = "600 node" ] || fail "droits du fichier de base : $mode"
 ok "base /data/argos.db : $mode"

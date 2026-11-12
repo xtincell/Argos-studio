@@ -110,6 +110,20 @@ try {
   for (const route of ['/api/v1', '/api/v1/references', `/api/v1/references/${receipt.slug}`, `/work/${receipt.slug}`]) {
     assert.equal((await fetch(`${origin}${route}`)).status, 200, `${route} stays public.`);
   }
+  // An address the library cannot serve answers HTTP 404 with the not-found page, on every kind
+  // of dynamic page — not 200, which a crawler, a link checker or a cache reads as a page.
+  const notFoundPage = 'Pas encore dans la';
+  for (const route of ['/work/operation-inconnue-temoin', '/work/operation-inconnue-temoin/inspect',
+    '/asset/a_operation-inconnue-temoin_00_headline', '/brand/marque-inconnue-temoin', '/agency/agence-inconnue-temoin',
+    '/market/marche-inconnu-temoin', '/sector/secteur-inconnu-temoin', '/year/1906', '/year/annee-inconnue',
+    '/award/victoire-inconnue', '/award/cannes-lions-gold', '/by/dimension-inconnue/valeur', '/by/axis/axe-inconnu',
+    '/by/pillar/x', '/route-absente-temoin']) {
+    const response = await fetch(`${origin}${route}`);
+    assert.equal(response.status, 404, `${route} answers HTTP 404.`);
+    assert.ok((await response.text()).includes(notFoundPage), `${route} renders the not-found page.`);
+  }
+  const known = [`/work/${receipt.slug}/inspect`, `/asset/a_${receipt.slug}_00_headline`, `/brand/${dossier.operation.brandEmitter.toLowerCase().replaceAll(' ', '-')}`];
+  for (const route of known) assert.equal((await fetch(`${origin}${route}`)).status, 200, `${route} opens.`);
   // Private space (ADR-0010): without the key a private dossier does not exist, on any surface.
   const marker = 'Opération confidentielle témoin';
   const markerBrand = 'Marque confidentielle témoin';
@@ -151,15 +165,19 @@ try {
     [`/asset/${asset(ps)}`, `/asset/${asset(unknown)}`], [`/work/${ps}/opengraph-image`, `/work/${unknown}/opengraph-image`],
     [`/api/v1/references/${ps}`, `/api/v1/references/${unknown}`], [`/api/v1/references/${ps}?format=dossier`, `/api/v1/references/${unknown}?format=dossier`],
     ['/brand/marque-confidentielle-temoin', '/brand/marque-inconnue-temoin'], ['/year/1907', '/year/1906'],
+    ['/agency/agence-confidentielle-temoin', '/agency/agence-inconnue-temoin'],
+    ['/sector/secteur-confidentiel-temoin', '/sector/secteur-inconnu-temoin'],
+    ['/market/marche-confidentiel-temoin', '/market/marche-inconnu-temoin'],
   ]) {
     const slugOf = (route) => (route.includes(ps) ? ps : route.includes(unknown) ? unknown : '');
     const a = await normalised(await fetch(`${origin}${hidden}`), slugOf(hidden) || hidden.split('/').pop());
     const b = await normalised(await fetch(`${origin}${absent}`), slugOf(absent) || absent.split('/').pop());
     assert.deepEqual(a, b, `${hidden} answers exactly like ${absent}.`);
-    // The API answers HTTP 404. A page answers the not-found page of an unknown address: its
-    // status is the one Next gives every unknown dynamic address under the root loading.tsx.
-    if (hidden.startsWith('/api/')) assert.equal(a.status, 404, `${hidden} is not found without the key.`);
-    else if (!hidden.includes('opengraph-image')) assert.equal(a.body.notFound, true, `${hidden} renders the not-found page.`);
+    // The API and the pages answer HTTP 404; a page with the not-found page of an unknown
+    // address. The Open Graph image stays the generic card of an unknown slug.
+    if (hidden.includes('opengraph-image')) continue;
+    assert.equal(a.status, 404, `${hidden} is not found without the key.`);
+    if (!hidden.startsWith('/api/')) assert.equal(a.body.notFound, true, `${hidden} renders the not-found page.`);
   }
   for (const route of surfaces) {
     const text = await (await fetch(`${origin}${route}`)).text();
@@ -178,6 +196,13 @@ try {
   assert.match(adminRead.headers.get('cache-control') ?? '', /no-store/);
   const adminHtml = await adminRead.text();
   for (const expected of [marker, 'Publier le dossier', 'Purge prévue le', 'noindex']) assert.ok(adminHtml.includes(expected), `The session reads ${expected}.`);
+  // Every page of the private dossier opens for the session (existence resolved in its scope).
+  for (const route of [`/work/${ps}/inspect`, `/asset/${asset(ps)}`, '/brand/marque-confidentielle-temoin', '/year/1907',
+    '/agency/agence-confidentielle-temoin', '/sector/secteur-confidentiel-temoin', '/market/marche-confidentiel-temoin']) {
+    const read = await fetch(`${origin}${route}`, { ...manual, headers: { Cookie: reopened } });
+    assert.equal(read.status, 200, `${route} opens for the session.`);
+    assert.ok((await read.text()).includes(marker), `${route} shows the private dossier to the session.`);
+  }
   for (const route of ['/works', `/search?q=${encodeURIComponent('confidentielle')}`, '/admin/prive']) {
     assert.ok((await (await fetch(`${origin}${route}`, { headers: { Cookie: reopened } })).text()).includes(marker), `${route} lists it for the session.`);
   }
@@ -198,8 +223,8 @@ try {
   const publicRead = await fetch(`${origin}/work/${ps}`);
   assert.equal(publicRead.status, 200);
   assert.ok((await publicRead.text()).includes(marker));
-  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true, adminPageWithoutSession303: true, signedSessionCookie: true, sessionWrite201: true, sessionWriteWithoutOrigin403: true, publicReads200: true,
-    privateLikeUnknown: true, privateAbsentFromAnonymousSurfaces: true, privateReadWithKey: true, purgeDryRun: true, explicitPublication303: true }));
+  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true, adminPageWithoutSession303: true, signedSessionCookie: true, sessionWrite201: true, sessionWriteWithoutOrigin403: true, publicReads200: true, unknownPages404: true,
+    privateLikeUnknown: true, privatePagesWithSession200: true, privateAbsentFromAnonymousSurfaces: true, privateReadWithKey: true, purgeDryRun: true, explicitPublication303: true }));
 } catch (error) {
   console.error(logs);
   throw error;
