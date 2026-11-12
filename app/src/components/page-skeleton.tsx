@@ -1,4 +1,11 @@
-export default function Loading() {
+// Loading skeleton of a page while the server reads it (shown by a `loading.tsx`).
+//
+// A loading boundary starts the HTTP response, and its status, before the page behind it has
+// rendered. It is therefore only placed above pages that cannot answer not found, or in a
+// segment whose layout has already resolved the existence of what the page shows — otherwise
+// an unknown address would answer 200 instead of 404 (tests/not-found-status.test.ts).
+
+export function PageSkeleton() {
   return (
     <section className="view">
       <div

@@ -66,6 +66,24 @@ export async function getReferenceBySlug(
   return row ? dbToReference(row, scope) : undefined;
 }
 
+/**
+ * Whether this reader may open the dossier `slug`: the same filter as `getReferenceBySlug`, one
+ * indexed read. A fiche resolves it in its layout, before its loading boundary, so that an
+ * unknown slug — or a private dossier read without the key — answers HTTP 404.
+ */
+export async function referenceExists(slug: string, scope: ReadScope = 'public'): Promise<boolean> {
+  noStore();
+  const row = await prisma.reference.findFirst({ where: { slug, ...visibilityWhere(scope) }, select: { id: true } });
+  return row !== null;
+}
+
+/** Whether this reader may open the asset `id`: an asset of a reference of its scope (`getAssetById`). */
+export async function assetExists(id: string, scope: ReadScope = 'public'): Promise<boolean> {
+  noStore();
+  const row = await prisma.asset.findFirst({ where: { id, reference: visibilityWhere(scope) }, select: { id: true } });
+  return row !== null;
+}
+
 export type SourceDossierRead =
   | { status: 'found'; dossier: ResearchDossier; updatedAt: string; visibility: Visibility }
   | { status: 'unavailable' };
