@@ -84,7 +84,15 @@ created=$(curl -s -w '\n%{http_code}' -X POST -H "Authorization: Bearer $KEY" -H
 PSLUG=$(echo "$created" | head -1 | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).slug))")
 ok "admission dans l'espace privé : HTTP 201 ($PSLUG)"
 expect 404 "dossier privé sans clé, comme une adresse inconnue" "$BASE/api/v1/references/$PSLUG"
-expect 404 "page du dossier privé sans session" "$BASE/work/$PSLUG"
+# ADR-0010 : sans session, la page d'un dossier privé répond exactement comme une adresse
+# inconnue (même statut). Une page dynamique inconnue répond aujourd'hui 200 avec la page
+# introuvable, car le chargement racine démarre la réponse : ce défaut, antérieur, est suivi
+# à part. La recette défend l'invariant, pas un statut que ni l'une ni l'autre ne rendent.
+unknown=$(code "$BASE/work/argos-recette-adresse-inconnue")
+private=$(code "$BASE/work/$PSLUG")
+[ "$private" = "$unknown" ] || fail "page du dossier privé sans session : HTTP $private, adresse inconnue : HTTP $unknown"
+curl -s "$BASE/work/$PSLUG" | grep -qF 'Recette Docker espace privé' && fail "la page du dossier privé montre son titre sans session"
+ok "page du dossier privé sans session : comme une adresse inconnue (HTTP $private), sans son titre"
 expect 200 "dossier privé lu avec la clé" -H "Authorization: Bearer $KEY" "$BASE/api/v1/references/$PSLUG"
 curl -s "$BASE/api/v1/references?limit=100" | grep -q "$PSLUG" && fail "le dossier privé apparaît dans la liste publique"
 ok "absent de la liste publique"
