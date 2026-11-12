@@ -6,7 +6,7 @@ L’application possède une bibliothèque Prisma/SQLite, des routes REST v1 et 
 admission JSON manuelle. Les lectures utilisent la base ; les fixtures ne sont
 pas une preuve de campagne collectée aujourd’hui. Les sections de bootstrap
 ci-dessous sont historiques : elles ne décrivent pas l’architecture intégralement.
-Les écritures et l’administration exigent la clé unique `ARGOS_ADMIN_KEY` (ADR-0009). Le serveur MCP et l’espace privé des consultations restent ouverts.
+Les écritures et l’administration exigent la clé unique `ARGOS_ADMIN_KEY` (ADR-0009). La même clé lit l’espace privé (ADR-0010) : toute lecture passe par `src/lib/library.ts`, dont la portée par défaut est publique. Le serveur MCP reste ouvert.
 Voir [la réception d’intégrité](../docs/RECEPTION-INTEGRITE.md) et le changelog.
 
 Pour une base locale neuve, fournir `DATABASE_URL` à Prisma, appliquer
@@ -146,7 +146,7 @@ aucun récit de production ou résultat commercial. Les vues de données sont
 lues à la requête, pour retrouver un dépôt ou une correction après le build.
 
 ```bash
-npm test                    # 39 scénarios, bases jetables et migration incluse
+npm test                    # 53 scénarios, bases jetables et migrations incluses
 npm run typecheck
 npm run lint
 npm run build
@@ -154,7 +154,7 @@ node tests/production-flow.mjs  # serveur construit + base séparée, aucun four
 ```
 
 L’image du VPS est décrite dans le README racine (`Dockerfile`, volume `/data`,
-sauvegarde `argos-backup`). L’espace privé des consultations, les droits de
-réemploi et les dérivations d’actifs entre références restent à recevoir avant la
-release complète. Aucun déploiement public ou
+sauvegarde `argos-backup`, purge `argos-purge-private`). Espace privé et rétention :
+README racine et ADR-0010. Les droits de réemploi et les dérivations d’actifs entre
+références restent à recevoir avant la release complète. Aucun déploiement public ou
 consentement client n’est déduit de la réception locale.

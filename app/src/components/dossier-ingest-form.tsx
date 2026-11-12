@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 type SubmitState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
-  | { kind: 'success'; slug: string; assetCount: number }
+  | { kind: 'success'; slug: string; assetCount: number; visibility: 'public' | 'private' }
   | { kind: 'error'; failure: Failure; offerReload: boolean; offerLogin: boolean };
 
 /** State of the requests that fill the editor (current dossier, example, template, file). */
@@ -42,6 +42,11 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
   const inputId = useId();
   const [json, setJson] = useState('');
   const [expectedVersion, setExpectedVersion] = useState<string | null>(null);
+  /** Visibility of the loaded reference (kept by an amendment), or null for a new dossier. */
+  const [loadedVisibility, setLoadedVisibility] = useState<'public' | 'private' | null>(null);
+  /** A new dossier may be admitted in the private space (ADR-0010). */
+  const [privateAdmission, setPrivateAdmission] = useState(false);
+  const privateId = useId();
   const [notice, setNotice] = useState<Notice | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
@@ -69,11 +74,15 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
       }
       if (!mounted.current) return;
       setExpectedVersion(response.headers.get('ETag'));
+      setLoadedVisibility(response.headers.get('X-Argos-Visibility') === 'private' ? 'private' : 'public');
       setJson(JSON.stringify(original, null, 2));
       setNotice(null);
       return;
     }
     if (response.status === 404) {
+      // Drain the refusal: a response read with the key is never stored (no-store), and an
+      // unread body would keep its request open.
+      await response.text().catch(() => '');
       if (mounted.current) setNotice({ kind: 'error', failure: plainFailure(`Aucune référence « ${slug} » n’existe dans la bibliothèque. Vous pouvez soumettre un nouveau dossier.`) });
       return;
     }
@@ -90,9 +99,10 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
         if (mounted.current) setNotice({ kind: 'error', failure, retry: failure.retryable ? retry : undefined });
         return;
       }
-      const payload = (await current.json()) as { data?: { updatedAt?: string } };
+      const payload = (await current.json()) as { data?: { updatedAt?: string; visibility?: string } };
       if (!mounted.current) return;
       setExpectedVersion(payload.data?.updatedAt ? JSON.stringify(payload.data.updatedAt) : null);
+      setLoadedVisibility(payload.data?.visibility === 'private' ? 'private' : 'public');
       setNotice({ kind: 'error', failure: plainFailure('Le dossier d’origine n’est pas conservé pour cette ancienne référence. Chargez votre fichier pour la reprendre ; aucune source n’est reconstituée automatiquement.') });
     } catch {
       if (mounted.current) setNotice({ kind: 'error', failure: describeNetworkFailure(action), retry });
@@ -149,9 +159,11 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
     if (!validation?.ok || !validation.dossier) return;
     const action = 'Envoi du dossier';
     setSubmitState({ kind: 'submitting' });
+    // Visibility is chosen when a dossier is admitted; an amendment keeps the stored one.
+    const admitPrivately = privateAdmission && !expectedVersion;
     let res: Response;
     try {
-      res = await fetch('/api/v1/ingest/dossier', {
+      res = await fetch(`/api/v1/ingest/dossier${admitPrivately ? '?visibility=private' : ''}`, {
         method: 'POST',
         // The administration session travels as an HttpOnly cookie; the key never reaches this page.
         headers: { 'Content-Type': 'application/json', ...(expectedVersion ? { 'If-Match': expectedVersion } : {}) },
@@ -166,7 +178,7 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
       setSubmitState({ kind: 'error', failure: await describeResponseFailure(action, res), offerReload: res.status === 409, offerLogin: res.status === 401 });
       return;
     }
-    let data: { ok?: boolean; slug?: string; assetCount?: number; updatedAt?: string; message?: string };
+    let data: { ok?: boolean; slug?: string; assetCount?: number; updatedAt?: string; visibility?: string; message?: string };
     try {
       data = await res.json();
     } catch {
@@ -177,8 +189,10 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
       setSubmitState({ kind: 'error', failure: plainFailure(`${action} : ${data.message ?? 'le serveur n’a pas confirmé l’enregistrement.'}`), offerReload: true, offerLogin: false });
       return;
     }
+    const visibility = data.visibility === 'private' ? 'private' : 'public';
     setExpectedVersion(data.updatedAt ? JSON.stringify(data.updatedAt) : null);
-    setSubmitState({ kind: 'success', slug: data.slug, assetCount: data.assetCount ?? 0 });
+    setLoadedVisibility(visibility);
+    setSubmitState({ kind: 'success', slug: data.slug, assetCount: data.assetCount ?? 0, visibility });
   }
 
   async function loadExample() {
@@ -312,6 +326,27 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
               et attribué au chercheur nommé dans le dossier. L'opération est <b>idempotente</b> par
               slug — re-soumettre le même JSON met à jour, ne duplique pas.
             </p>
+            {expectedVersion && loadedVisibility ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Visibilité conservée : <b>{loadedVisibility === 'private' ? 'dossier privé' : 'dossier public'}</b>.
+                Elle se change depuis la fiche de la référence, pas par une correction.
+              </p>
+            ) : (
+              <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  id={privateId}
+                  type="checkbox"
+                  checked={privateAdmission}
+                  onChange={(event) => setPrivateAdmission(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                />
+                <label htmlFor={privateId} className={cn('cursor-pointer', MOBILE_TARGET)}>
+                  <b className="text-foreground">Admettre dans l’espace privé</b> — visible avec la clé
+                  d’administration seulement, purgé 24 mois après sa dernière modification sauf
+                  publication.
+                </label>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 variant="accent"
@@ -336,7 +371,8 @@ export function DossierIngestForm({ initialSlug }: { initialSlug?: string }) {
                 <span className="inline-flex flex-wrap items-center gap-1.5 text-sm text-success">
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
                   Ingéré comme <code className="font-mono">{submitState.slug}</code> avec{' '}
-                  {submitState.assetCount} asset{submitState.assetCount > 1 ? 's' : ''}.{' '}
+                  {submitState.assetCount} asset{submitState.assetCount > 1 ? 's' : ''}
+                  {submitState.visibility === 'private' ? ', dans l’espace privé' : ''}.{' '}
                   <a className="underline" href={`/work/${submitState.slug}`}>Ouvrir la référence</a>
                 </span>
               )}

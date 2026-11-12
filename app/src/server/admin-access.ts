@@ -7,9 +7,10 @@
 //     SameSite=Strict cookie signed with the key. Rotating the key ends every session.
 // Without a configured key (or with a key shorter than 24 characters) administration is
 // closed: writes answer 503 and administration pages send to the login page, which says so.
-// Public reads of the library, API v1 included, never go through this module.
+// Public reads of the library, API v1 included, never require this module; the same key widens
+// a read to the private dossiers (src/server/read-scope.ts, ADR-0010).
 //
-// No account, provider, private consultation or tenant is created here.
+// No account, provider or tenant is created here.
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
@@ -147,6 +148,27 @@ export function requireAdmin(request: NextRequest): NextResponse | null {
     return null;
   }
   return refusal(401, 'ADMIN_UNAUTHORIZED', 'Ouvrez une session d’administration, ou fournissez la clé.', { 'WWW-Authenticate': 'Bearer realm="argos-admin"' });
+}
+
+/**
+ * Which channel of the single key authorised a request already admitted by `requireAdmin`:
+ * a server client's Bearer header, or a browser session. Recorded with visibility changes and
+ * purges ("who" is a channel: the key carries no identity, ADR-0009).
+ */
+export function adminChannel(request: NextRequest): 'admin-bearer' | 'admin-session' {
+  return bearerOf(request) !== null ? 'admin-bearer' : 'admin-session';
+}
+
+/**
+ * Does this request carry the administration key (valid Bearer or open session)? A missing or
+ * refused key is not an error here: the request reads as anonymous.
+ */
+export function carriesAdminKey(request: NextRequest): boolean {
+  const key = configuredAdminKey();
+  if (!key) return false;
+  const bearer = bearerOf(request);
+  if (bearer !== null && isAdminKey(bearer, key)) return true;
+  return verifyAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value, key);
 }
 
 /** Has this browser an open administration session? (pages and middleware) */

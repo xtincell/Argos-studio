@@ -1,3 +1,55 @@
+# Espace privé et rétention (12 novembre 2026)
+
+Décision du propriétaire du 12 novembre ([ADR-0010](decisions/0010-espace-prive-upgraders-retention.md)) :
+l’espace privé appartient à UPgraders, se lit avec la clé unique, et un dossier privé est purgé
+24 mois après sa dernière modification sauf publication. Elle répond aux questions laissées
+ouvertes le 11 novembre (titulaire, accès, données, durée, lecteurs). Aucun fournisseur, aucun
+service extérieur, aucune base opérateur touchée, aucun déploiement.
+
+1. **Modèle.** Une visibilité sur `Reference` plutôt qu’une seconde bibliothèque : un dossier,
+   un writer, une validation. Migration additive ; les dossiers existants (dont les huit dossiers
+   publics du dépôt) restent publics, vérifié sur une base peuplée avant/après.
+2. **Isolation.** La portée publique est le défaut de toute lecture ; un test statique refuse
+   l’accès direct à la base depuis les pages et routes. Sans clé, un dossier privé répond comme
+   un slug inconnu : mêmes statut, en-têtes et corps à l’API (404) ; à la fiche, à la vue
+   analytique, à l’actif, à la marque et à l’année, même page « introuvable » que pour une
+   adresse inconnue ; même image Open Graph. Listes, facettes, comptes et exports sont identiques
+   avant et après l’admission d’un dossier privé ; l’accueil, la recherche et le plan du site ne
+   le nomment pas.
+3. **Clé.** Bearer et session lisent, listent, cherchent et comptent les dossiers privés ; une
+   clé refusée lit comme un anonyme. Réponses lues avec la clé jamais stockées.
+4. **Visibilité.** Choisie à l’admission, gardée par les amendements ; changée par une action
+   explicite qui enregistre date et canal (`admin-session`, `admin-bearer`). Publier revalide
+   le dossier conservé.
+5. **Rétention.** Aperçu sans écriture (pas même son journal), purge en cascade avec
+   `secure_delete`, journal sans titre ni slug ; dossiers publics, dossiers récents et dossiers
+   rendus privés récemment conservés. Échéance exacte (24 mois calendaires) testée.
+
+Recettes, rouges sur `main` (`34af965`) puis vertes sur la branche :
+
+- `npm test` : 53 tests, dont 14 nouveaux ; sur `main` 40 verts / 13 rouges — 12 des 13 cas de
+  `private-space.test.ts` et le cas de migration. Le 13ᵉ cas de ce fichier (huit dossiers publics
+  admis et listés) est vert des deux côtés, garde de non-régression.
+- `node tests/production-flow.mjs` : sur `main`, rouge à l’admission privée (`visibility`
+  absente) ; sur la branche, vert cinq fois de suite.
+- `npm run test:ui` : 25 scénarios ; sur `main` 23 verts / 2 rouges (nouveau parcours privé,
+  bouton de visibilité absent de la cible 44 px) ; sur la branche 25 verts.
+- Typage et lint sans erreur (24 avertissements, identiques à `main`).
+- `docker/recette.sh` étendue (admission privée, 404 sans clé, 200 avec, aperçu de purge, mode
+  obligatoire, conservation après recréation) : non exécutée localement faute de démon Docker ;
+  elle tourne dans le job CI `docker`.
+
+Constats en passant : l’image Open Graph d’une fiche échouait toujours (bloc à plusieurs enfants
+refusé par le moteur d’image) ; corrigée. Une adresse dynamique inconnue est servie avec la page
+404 mais un statut HTTP 200 (flux ouvert par le `loading.tsx` racine avant la résolution) ;
+non modifié ici, un dossier privé répond exactement pareil.
+
+Restent ouverts : la rotation des copies `argos-backup` (une copie antérieure à une purge garde
+les dossiers purgés ; la purge les compte et le signale), l’identité des administrateurs (la clé
+n’en a pas), le déploiement et sa migration en production.
+
+---
+
 # Administration par clé unique et image du VPS (11 novembre 2026)
 
 Point AR3 du programme, après l’arbitrage 5.8 (SQLite sur volume, clé unique ;

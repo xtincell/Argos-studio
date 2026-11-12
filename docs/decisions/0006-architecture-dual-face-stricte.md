@@ -42,7 +42,7 @@ Service public (Next.js), service interne La Fusée (Node.js + MCP), workers ing
 Contraintes structurantes appliquées :
 1. **API-first strict** : pas de logique métier dans les UI. Une seule source de vérité (data + business layer), plusieurs facades (Console expert, public search, MCP server, REST API).
 2. **Séparation IP nette** : Argos appartient à une entité juridique distincte de Matanga et UPgraders (préservation des options de sortie).
-3. **Tenant isolation logique** : les consultations La Fusée passent par un namespace privé (briefs clients confidentiels). Les références indexées sont publiques (campagnes déjà déployées). Stricte séparation enforced au niveau service.
+3. **Tenant isolation logique** : les consultations La Fusée passent par un namespace privé (briefs clients confidentiels). Les références indexées sont publiques (campagnes déjà déployées). Stricte séparation enforced au niveau service. *(Espace privé remplacé par l’ADR-0010 : une visibilité privée des dossiers, détenue par UPgraders, lue avec la clé d’administration.)*
 4. **Pricing enforced** : même pour les clients Matanga, accès Argos payant aux tarifs publics. Si Matanga veut offrir l'accès à un client en bonus, c'est Matanga qui finance.
 5. **RGPD compliance day one** : face publique avec utilisateurs européens probables → cookies/consentement/DPA/right-to-delete from scratch.
 6. **SEO comme actif core** : la face publique n'est pas une concession marketing, c'est un moat. SSR/structured data/i18n dès le premier déploiement public.

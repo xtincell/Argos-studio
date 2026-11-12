@@ -59,7 +59,9 @@ d.operation.title = 'Recette Docker AR3';
 d.operation.brandEmitter = 'Recette Docker';
 d.filiations = [];
 require('node:fs').writeFileSync(process.argv[2], JSON.stringify(d));
-" "$ROOT/app/public/dossier-example.json" "$WORK/dossier.json"
+d.operation.title = 'Recette Docker espace privé';
+require('node:fs').writeFileSync(process.argv[3], JSON.stringify(d));
+" "$ROOT/app/public/dossier-example.json" "$WORK/dossier.json" "$WORK/private.json"
 
 echo "1. Premier démarrage, volume neuf, clé configurée"
 docker volume create "$VOLUME" >/dev/null
@@ -77,6 +79,23 @@ created=$(curl -s -w '\n%{http_code}' -X POST -H "Authorization: Bearer $KEY" -H
 SLUG=$(echo "$created" | head -1 | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).slug))")
 ok "admission par la clé : HTTP 201 ($SLUG)"
 expect 200 "fiche admise, lue sans clé" "$BASE/api/v1/references/$SLUG"
+created=$(curl -s -w '\n%{http_code}' -X POST -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' --data-binary "@$WORK/private.json" "$BASE/api/v1/ingest/dossier?visibility=private")
+[ "$(echo "$created" | tail -1)" = 201 ] || fail "admission privée par la clé : $created"
+PSLUG=$(echo "$created" | head -1 | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).slug))")
+ok "admission dans l'espace privé : HTTP 201 ($PSLUG)"
+expect 404 "dossier privé sans clé, comme une adresse inconnue" "$BASE/api/v1/references/$PSLUG"
+expect 404 "page du dossier privé sans session" "$BASE/work/$PSLUG"
+expect 200 "dossier privé lu avec la clé" -H "Authorization: Bearer $KEY" "$BASE/api/v1/references/$PSLUG"
+curl -s "$BASE/api/v1/references?limit=100" | grep -q "$PSLUG" && fail "le dossier privé apparaît dans la liste publique"
+ok "absent de la liste publique"
+docker exec "$NAME" argos-purge-private --dry-run | grep -q 'Aperçu' || fail "argos-purge-private --dry-run"
+ok "purge de rétention : aperçu sans écriture"
+set +e
+docker exec "$NAME" argos-purge-private >/dev/null 2>&1
+status=$?
+set -e
+[ "$status" = 64 ] || fail "argos-purge-private sans mode : sortie $status au lieu de 64"
+ok "purge de rétention : le mode est obligatoire"
 curl -s -o /dev/null -D "$WORK/login.headers" -X POST -H "Origin: $BASE" \
   --data-urlencode "key=$KEY" --data-urlencode 'next=/admin/ingest' "$BASE/api/admin/login"
 grep -qi '^HTTP/1.1 303' "$WORK/login.headers" || fail "connexion par formulaire"
@@ -101,6 +120,8 @@ echo "3. Nouveau conteneur sur le même volume (redéploiement)"
 docker rm -f "$NAME" >/dev/null
 start "$NAME" -v "$VOLUME:/data" -e "ARGOS_ADMIN_KEY=$KEY" || fail "le nouveau conteneur ne démarre pas"
 expect 200 "fiche conservée dans un nouveau conteneur" "$BASE/api/v1/references/$SLUG"
+expect 404 "dossier privé toujours privé dans le nouveau conteneur" "$BASE/api/v1/references/$PSLUG"
+expect 200 "dossier privé conservé, lu avec la clé" -H "Authorization: Bearer $KEY" "$BASE/api/v1/references/$PSLUG"
 expect 200 "session toujours valide avec la même clé" -H "Cookie: $session" "$BASE/admin/ingest"
 
 echo "4. Sauvegarde à chaud, puis restauration sur un volume neuf"

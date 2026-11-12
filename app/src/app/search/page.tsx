@@ -15,6 +15,7 @@ import {
   listYears,
   slugify,
 } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import {
   ASSET_FUNCTION_LABELS,
   MANIPULATION_MODE_LABELS,
@@ -37,6 +38,7 @@ import type {
   StructuralAxisName,
   VictoryType,
 } from '@/lib/types';
+import { PrivatePill } from '@/components/private-pill';
 
 export const metadata: Metadata = {
   title: 'Rechercher dans la bibliothèque',
@@ -237,23 +239,24 @@ function buildHref(current: ParsedQuery, override: Partial<ParsedQuery & { unset
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const scope = await pageReadScope();
   const raw = await searchParams;
   const query = parseQuery(raw);
 
   const [all, brands, agencies, sectors, markets, years, awards, modes, kinds, axes, functions, goals] =
     await Promise.all([
-      getAllReferences(),
-      listBrands(),
-      listAgencies(),
-      listSectors(),
-      listMarkets(),
-      listYears(),
-      listAwards(),
-      listManipulationModes(),
-      listPatternKinds(),
-      listStructuralAxes(),
-      listAssetFunctions(),
-      listOperationGoals(),
+      getAllReferences(scope),
+      listBrands(scope),
+      listAgencies(scope),
+      listSectors(scope),
+      listMarkets(scope),
+      listYears(scope),
+      listAwards(scope),
+      listManipulationModes(scope),
+      listPatternKinds(scope),
+      listStructuralAxes(scope),
+      listAssetFunctions(scope),
+      listOperationGoals(scope),
     ]);
 
   const results = filterReferences(all, query);
@@ -889,6 +892,7 @@ function ResultRow({ reference: r, query }: { reference: Reference; query: Parse
         <div className="pills">
           <span className="pill butter">{r.sector}</span>
           <span className="pill">{r.marketPrimary}</span>
+          <PrivatePill visibility={r.visibility} />
           {r.manipulationMode && (
             <span className="pill sage">
               {r.manipulationMode.charAt(0) + r.manipulationMode.slice(1).toLowerCase()}

@@ -133,6 +133,7 @@ function ReferenceCardGrid({
           {reference.title}
         </h3>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+          {reference.visibility === 'private' && <Badge variant="default" className="text-[10px]">Privé</Badge>}
           <Badge variant="outline" className="text-[10px]">
             {MANIPULATION_MODE_LABELS[reference.manipulationMode]}
           </Badge>
@@ -181,6 +182,7 @@ function ReferenceCardList({
         </h3>
         <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{reference.summary}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+          {reference.visibility === 'private' && <Badge variant="default" className="text-[10px]">Privé</Badge>}
           <Badge variant="outline" className="text-[10px]">
             {PATTERN_KIND_LABELS[reference.patternKind]}
           </Badge>

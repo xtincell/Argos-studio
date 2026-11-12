@@ -3,7 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FreshTime } from '@/components/fresh-time';
+import { PrivatePill } from '@/components/private-pill';
 import { getAssetById, getAssetsByFunction } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import { ASSET_FUNCTION_LABELS } from '@/lib/taxonomy';
 import type { Asset, AssetFunction, Reference } from '@/lib/types';
 import { metricEvidenceKey } from '@/lib/types';
@@ -16,8 +18,9 @@ interface AssetPageProps {
 }
 
 export async function generateMetadata({ params }: AssetPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { id } = await params;
-  const result = await getAssetById(id);
+  const result = await getAssetById(id, scope);
   if (!result) return { title: 'Asset introuvable' };
   const { asset, reference } = result;
   const fn = ASSET_FUNCTION_LABELS[asset.function as AssetFunction] ?? asset.function;
@@ -47,12 +50,14 @@ export async function generateMetadata({ params }: AssetPageProps): Promise<Meta
     alternates: {
       canonical: `/asset/${asset.id}`,
     },
+    ...(reference.visibility === 'private' ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
 export default async function AssetPage({ params }: AssetPageProps) {
+  const scope = await pageReadScope();
   const { id } = await params;
-  const result = await getAssetById(id);
+  const result = await getAssetById(id, scope);
   if (!result) notFound();
   const { asset, reference } = result;
 
@@ -71,7 +76,7 @@ export default async function AssetPage({ params }: AssetPageProps) {
   const siblings = reference.assets.filter((a) => a.id !== asset.id);
 
   // Mêmes fonctions ailleurs (autres opérations avec un asset de même fonction)
-  const sameFunctionAssets = (await getAssetsByFunction(asset.function as AssetFunction))
+  const sameFunctionAssets = (await getAssetsByFunction(asset.function as AssetFunction, scope))
     .filter((a) => a.asset.id !== asset.id)
     .slice(0, 6);
 
@@ -111,6 +116,7 @@ export default async function AssetPage({ params }: AssetPageProps) {
           <span className="pill coral">
             <span className="sp" style={{ color: '#fff' }}>✦</span> {asset.role}
           </span>
+          <PrivatePill visibility={reference.visibility} />
           <span className="pill butter">{fnLabel}</span>
           <span className="pill">{asset.kind}</span>
           <span className="pill">{asset.aspectRatio}</span>

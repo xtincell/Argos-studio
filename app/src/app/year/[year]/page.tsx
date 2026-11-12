@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { getReferencesByYear, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
 export const dynamic = 'force-dynamic';
@@ -19,10 +20,11 @@ export async function generateMetadata({ params }: YearPageProps): Promise<Metad
 }
 
 export default async function YearPage({ params }: YearPageProps) {
+  const scope = await pageReadScope();
   const { year } = await params;
   const yearNum = Number.parseInt(year, 10);
   if (!Number.isFinite(yearNum)) notFound();
-  const refs = await getReferencesByYear(yearNum);
+  const refs = await getReferencesByYear(yearNum, scope);
   if (refs.length === 0) notFound();
 
   const sectors = Array.from(new Set(refs.map((r) => r.sector)));

@@ -57,7 +57,7 @@ La Fusée. SQLite tient le volume prévisible d’une bibliothèque éditoriale 
   PostgreSQL et des comptes demanderaient un nouvel ADR, des migrations et une recette de
   restauration propres.
 - L’espace privé des consultations (ADR-0006, point 3) n’est pas tranché par cette décision :
-  voir `docs/RECEPTION-INTEGRITE.md`, section du 11 novembre.
+  voir `docs/RECEPTION-INTEGRITE.md`, section du 11 novembre. Tranché depuis par l’ADR-0010.
 
 ## Suivi
 

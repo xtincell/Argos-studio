@@ -209,7 +209,7 @@ function routes() {
     `/work/${corpus.slug}`, `/work/${corpus.slug}/inspect`, `/work/${corpus.seededSlug}`, `/work/${corpus.seededSlug}/inspect`,
     '/brand', '/brand/nike', '/sector', '/market', '/award', '/year', '/agency', '/works', '/admin/ingest',
     `/admin/ingest?slug=${corpus.slug}`, '/docs/api', '/docs/research-dossier-spec', '/sign-in', '/privacy', '/terms',
-    '/route-absente', `/asset/${corpus.assetId}`];
+    '/route-absente', `/asset/${corpus.assetId}`, '/admin/prive'];
 }
 
 test('à 390 px, aucune page ne défile horizontalement et aucun contenu n’est masqué pour y parvenir', async () => {
@@ -298,6 +298,7 @@ test('à 390 px, les commandes principales sont visibles et mesurent au moins 44
       ['exporter', page.getByRole('link', { name: /Exporter/ })],
       ['copier le lien', page.getByRole('button', { name: 'Copier le lien' })],
       ['imprimer', page.getByRole('button', { name: 'Imprimer' })],
+      ['visibilité', page.getByRole('button', { name: /Publier le dossier|Rendre privé/ })],
     ]));
     await visit(page, '/admin/ingest');
     await page.getByRole('button', { name: /Charger l[’']exemple/ }).click();
@@ -647,6 +648,49 @@ test('l’accueil date la dernière mise à jour de la bibliothèque', async () 
     assert.equal(await time.count(), 1);
     assert.match(await time.locator('xpath=..').innerText(), /mise à jour/i);
   } finally { await page.close(); }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Private space (ADR-0010): absent without the key, read and published with it.
+
+test('un dossier privé n’existe pas sans la clé, se lit avec la session et se publie explicitement', async () => {
+  const dossier = JSON.parse(await readFile('public/dossier-example.json', 'utf8'));
+  Object.assign(dossier.operation, { title: 'Interface privée témoin', brandEmitter: 'Synthetic UI privé' });
+  dossier.researcher = { name: 'Synthetic receipt only' };
+  const created = await fetch(`${origin}/api/v1/ingest/dossier?visibility=private`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify(dossier) });
+  assert.equal(created.status, 201);
+  const { slug } = await created.json();
+  const anonymous = await openPage();
+  const admin = await openPage(undefined, { admin: true });
+  try {
+    // Without the key the dossier page is the page of an unknown address.
+    const hidden = await anonymous.goto(`${origin}/work/${slug}`, { waitUntil: 'networkidle' });
+    const unknown = await anonymous.context().newPage();
+    const absent = await unknown.goto(`${origin}/work/adresse-inconnue-ui`, { waitUntil: 'networkidle' });
+    assert.equal(hidden.status(), absent.status());
+    await anonymous.getByRole('heading', { name: /Pas encore dans la bibliothèque/ }).waitFor();
+    assert.equal(await anonymous.title(), await unknown.title());
+    await unknown.close();
+    assert.doesNotMatch(await anonymous.locator('body').innerText(), /Interface privée témoin/);
+    for (const route of ['/works', `/search?q=${encodeURIComponent('Interface privée')}`, '/brand']) {
+      await visit(anonymous, route);
+      assert.doesNotMatch(await content(anonymous).innerText(), /Interface privée témoin|Synthetic UI privé/, `${route} without the key.`);
+    }
+    await visit(admin, '/admin/prive');
+    assert.match(await content(admin).innerText(), /Interface privée témoin/);
+    await visit(admin, `/work/${slug}`);
+    const panel = admin.locator(`${C} section.visibility-panel`);
+    assert.match(await panel.innerText(), /dossier privé/i);
+    assert.match(await panel.innerText(), /Purge prévue le/);
+    await admin.getByRole('button', { name: 'Publier le dossier' }).click();
+    await admin.waitForURL(`${origin}/work/${slug}?visibilite=publique`);
+    assert.match(await admin.locator(`${C} section.visibility-panel output`).innerText(), /Dossier publié/);
+    assert.equal(await admin.getByRole('button', { name: 'Rendre privé' }).count(), 1);
+    const published = await anonymous.goto(`${origin}/work/${slug}`, { waitUntil: 'networkidle' });
+    assert.equal(published.status(), 200, 'Published: readable without the key.');
+    assert.equal(await anonymous.locator(`${C} section.visibility-panel`).count(), 0, 'The visibility panel is for the key only.');
+  } finally { await anonymous.close(); await admin.close(); }
 });
 
 process.on('exit', (code) => { if (code !== 0 && logs) console.error(logs); });

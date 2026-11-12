@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { getReferencesByAgency, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ interface AgencyPageProps {
 }
 
 export async function generateMetadata({ params }: AgencyPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByAgency(slug);
+  const refs = await getReferencesByAgency(slug, scope);
   if (refs.length === 0) return { title: 'Agence introuvable' };
   const agencyName = refs[0]?.agencyCreator ?? slug;
   return {
@@ -22,8 +24,9 @@ export async function generateMetadata({ params }: AgencyPageProps): Promise<Met
 }
 
 export default async function AgencyPage({ params }: AgencyPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByAgency(slug);
+  const refs = await getReferencesByAgency(slug, scope);
   if (refs.length === 0) notFound();
 
   const agencyName = refs[0]?.agencyCreator ?? slug;

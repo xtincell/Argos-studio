@@ -7,8 +7,10 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 // Editorial OG card. Cream background, coral accent, mono caption.
-export default async function OgImage({ params }: { params: { slug: string } }) {
-  const reference = await getReferenceBySlug(params.slug);
+// Always the public scope (ADR-0010): a private or unknown slug gets the same generic card.
+export default async function OgImage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const reference = await getReferenceBySlug(slug);
   const title = reference?.title ?? 'Argos';
   const brand = reference?.brandEmitter ?? '';
   const year = reference?.emissionYear ?? '';
@@ -40,7 +42,7 @@ export default async function OgImage({ params }: { params: { slug: string } }) 
             color: '#6f5634',
           }}
         >
-          <span>DOSSIER · {reference?.slug?.slice(0, 24) ?? 'argos'}</span>
+          <span>{`DOSSIER · ${reference?.slug?.slice(0, 24) ?? 'argos'}`}</span>
           <span style={{ color: '#cc4d2e', fontWeight: 600 }}>ARGOS</span>
         </div>
 
@@ -55,6 +57,8 @@ export default async function OgImage({ params }: { params: { slug: string } }) 
         >
           <div
             style={{
+              // One text node: the image renderer refuses a div with several children unless flex.
+              display: 'flex',
               fontSize: 24,
               color: '#cc4d2e',
               letterSpacing: 1.5,
@@ -62,9 +66,7 @@ export default async function OgImage({ params }: { params: { slug: string } }) 
               fontWeight: 600,
             }}
           >
-            {brand}
-            {year ? ` · ${year}` : ''}
-            {sector ? ` · ${sector}` : ''}
+            {[brand, year, sector].filter((part) => part !== '').join(' · ')}
           </div>
 
           <div

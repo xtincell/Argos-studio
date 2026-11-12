@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { EntityIndexShell } from '@/components/entity-index-shell';
 import { listAwards } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import { VICTORY_LABELS } from '@/lib/taxonomy';
 
 export const metadata: Metadata = {
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AwardsIndexPage() {
-  const awards = await listAwards();
+  const scope = await pageReadScope();
+  const awards = await listAwards(scope);
   return (
     <EntityIndexShell
       eyebrow="Victoires"

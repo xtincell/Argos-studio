@@ -335,6 +335,16 @@ export interface Reference {
   /** Version of the canonical reference; supplied on amendments. */
   updatedAt?: string;
   hasSourceDossier?: boolean;
+  /**
+   * `public` for every reader; `private` is read with the administration key only (ADR-0010).
+   * An anonymous reader only ever receives public references.
+   */
+  visibility?: 'public' | 'private';
+  /** Administration scope only: last explicit visibility change and its channel. */
+  visibilityChangedAt?: string;
+  visibilityChangedBy?: string;
+  /** Administration scope only, private dossiers: when the retention purge removes it. */
+  purgeDueAt?: string;
   id: string;
   slug: string;
   title: string;

@@ -3163,3 +3163,106 @@ pre {
     grid-column: 1 / -1;
   }
 }
+
+/* Private space (ADR-0010): visibility of a dossier, shown to the administration key only. */
+.visibility-panel {
+  margin: 8px 0 20px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+.visibility-panel[data-visibility='private'] {
+  border-color: var(--ink-3);
+}
+.visibility-panel h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.visibility-panel p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.visibility-panel .visibility-change {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.visibility-panel .visibility-outcome {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(58, 142, 92, 0.1);
+  color: #1f5d3a;
+}
+.visibility-panel .visibility-outcome.error {
+  background: #fff1ec;
+  color: #7a2614;
+}
+.visibility-panel form {
+  margin-top: 4px;
+}
+.visibility-panel button.pill {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+.private-space table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.private-space th,
+.private-space td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.private-space th {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+@media (max-width: 720px) {
+  .private-space table,
+  .private-space thead,
+  .private-space tbody,
+  .private-space tr,
+  .private-space th,
+  .private-space td {
+    display: block;
+  }
+  .private-space thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .private-space tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .private-space td {
+    border: 0;
+    padding: 2px 0;
+  }
+  .private-space td[data-label]::before {
+    content: attr(data-label) ' · ';
+    color: var(--ink-3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}

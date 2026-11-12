@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import type React from 'react';
 import { notFound } from 'next/navigation';
 import { FreshTime } from '@/components/fresh-time';
+import { PrivatePill } from '@/components/private-pill';
 import { WorkViewTabs } from '@/components/work-view-tabs';
 import { getReferenceBySlug } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 import {
   type Asset,
   type AttributionConfidence,
@@ -22,18 +24,21 @@ interface InspectPageProps {
 }
 
 export async function generateMetadata({ params }: InspectPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const reference = await getReferenceBySlug(slug);
+  const reference = await getReferenceBySlug(slug, scope);
   if (!reference) return { title: 'Inspect — reference not found' };
   return {
     title: `${reference.title} — inspect`,
     description: `Analytical view of ${reference.title} by ${reference.brandEmitter}.`,
+    ...(reference.visibility === 'private' ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
 export default async function InspectView({ params }: InspectPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const reference = await getReferenceBySlug(slug);
+  const reference = await getReferenceBySlug(slug, scope);
   if (!reference) notFound();
   const hero = getHeroAsset(reference);
 
@@ -41,6 +46,11 @@ export default async function InspectView({ params }: InspectPageProps) {
     <section className="view" data-view="inspect">
       <div className="wrap">
         <WorkViewTabs slug={slug} active="inspect" />
+        {reference.visibility === 'private' && (
+          <p className="mono" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-3)', margin: '0 0 12px' }}>
+            <PrivatePill visibility={reference.visibility} /> Dossier privé : visible avec la clé d’administration seulement.
+          </p>
+        )}
         <SpecTop reference={reference} hero={hero} />
         <WinsRow reference={reference} />
         <AxisBento axes={reference.axes} />

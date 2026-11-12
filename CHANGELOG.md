@@ -1,5 +1,34 @@
 # Changelog Argos
 
+## Espace privé — non publiée (2026-11-12)
+
+Décision du propriétaire, ADR-0010 : un espace privé détenu par UPgraders, lu avec la clé
+unique, purgé 24 mois après la dernière modification sauf publication.
+
+- `Reference.visibility` (`public` | `private`), `visibilityChangedAt`, `visibilityChangedBy` ;
+  tables `VisibilityChange` (historique) et `PrivatePurgeRun` (comptes seulement). Migration
+  `20261112090000_private_space` additive (`ALTER TABLE … ADD COLUMN`) : tous les dossiers
+  existants restent publics, aucune ligne réécrite.
+- Toute lecture passe par la bibliothèque, portée publique par défaut ; la clé (Bearer ou
+  session) l’élargit. Sans clé, un dossier privé n’apparaît dans aucune liste, recherche,
+  facette, compte, plan du site, image de partage ni export, et répond comme un slug inconnu.
+  Une filiation publique vers un dossier privé est retirée de la lecture publique et de
+  l’export. API : `Vary: Authorization, Cookie`, `Cache-Control: private, no-store` avec la clé.
+- Admission `?visibility=private` ; un amendement garde la visibilité (409
+  `VISIBILITY_CONFLICT` sinon). `POST /api/v1/references/{slug}/visibility` : publication
+  revalidée par les règles d’admission (409 `PUBLICATION_REFUSED`), retrait permis ; date et
+  canal de la clé enregistrés, `updatedAt` (ETag) conservé.
+- Purge de rétention : quotidienne dans le serveur (`ARGOS_PRIVATE_PURGE=off`), route
+  `POST /api/admin/private-purge` à mode obligatoire, commande `argos-purge-private --dry-run |
+  --purge` dans l’image. Cascade complète, `secure_delete`, dossiers publics jamais touchés.
+- Interface : `/admin/prive`, panneau de visibilité de la fiche (session), marque « Privé » dans
+  les listes de la session, case « Admettre dans l’espace privé » ; dossier privé `noindex`.
+- Corrigé en passant : l’image Open Graph d’une fiche ne se générait jamais (le moteur d’image
+  refusait un bloc à plusieurs enfants) ; elle se génère, toujours en portée publique.
+- Tests : 14 nouveaux cas unitaires (13 rouges sur `main`) ; recette du serveur construit
+  étendue (rouge sur `main` à l’admission privée) ; 25 scénarios Playwright (2 rouges sur `main`) ;
+  recette Docker étendue (non exécutée localement, job CI `docker`).
+
 ## Clé unique et image du VPS — non publiée (2026-11-11)
 
 Arbitrage 5.8, ADR-0009 : SQLite sur volume et une clé unique d’administration.

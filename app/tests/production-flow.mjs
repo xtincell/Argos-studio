@@ -110,7 +110,96 @@ try {
   for (const route of ['/api/v1', '/api/v1/references', `/api/v1/references/${receipt.slug}`, `/work/${receipt.slug}`]) {
     assert.equal((await fetch(`${origin}${route}`)).status, 200, `${route} stays public.`);
   }
-  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true, adminPageWithoutSession303: true, signedSessionCookie: true, sessionWrite201: true, sessionWriteWithoutOrigin403: true, publicReads200: true }));
+  // Private space (ADR-0010): without the key a private dossier does not exist, on any surface.
+  const marker = 'Opération confidentielle témoin';
+  const markerBrand = 'Marque confidentielle témoin';
+  const privateDossier = { ...dossier, operation: { ...dossier.operation, title: marker, brandEmitter: markerBrand,
+    agencyCreator: 'Agence confidentielle témoin', sector: 'Secteur confidentiel témoin', marketPrimary: 'Marché confidentiel témoin',
+    marketsSecondary: [], emissionYear: 1907 } };
+  const before = {};
+  const surfaces = ['/', '/works', '/browse', '/patterns', '/glossary', '/assets', '/brand', '/sector', '/market', '/agency', '/year',
+    '/award', `/search?q=${encodeURIComponent('confidentielle')}`, '/sitemap.xml', '/api/v1/references?limit=100',
+    `/api/v1/references?limit=100&q=${encodeURIComponent('confidentielle')}`, '/api/v1/brands', '/api/v1/years', '/api/v1/assets?limit=200'];
+  for (const route of surfaces) before[route] = await (await fetch(`${origin}${route}`)).text();
+  const createdPrivate = await fetch(`${origin}/api/v1/ingest/dossier?visibility=private`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify(privateDossier) });
+  assert.equal(createdPrivate.status, 201);
+  const privateReceipt = await createdPrivate.json();
+  assert.equal(privateReceipt.visibility, 'private');
+  const ps = privateReceipt.slug;
+  const asset = (receiptSlug) => `a_${receiptSlug}_00_${privateDossier.assets[0].function.toLowerCase()}`;
+  const unknown = 'operation-inconnue-de-la-bibliotheque-privee';
+  // A page is streamed: its chunks may interleave differently from one request to the next. It
+  // is compared by what it says — status, title, robots, RSC rows and visible words — not by the
+  // order in which the server flushed them. JSON and images are compared byte for byte.
+  const canonical = (body, type) => {
+    if (!(type ?? '').includes('text/html')) return body;
+    const rows = [...body.matchAll(/self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g)]
+      .map((match) => JSON.parse(match[1])).join('').split('\n').filter(Boolean).sort();
+    const markup = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+    return { title: /<title>([^<]*)<\/title>/.exec(markup)?.[1], robots: /<meta name="robots" content="([^"]*)"/.exec(markup)?.[1],
+      rows, words: markup.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).sort(),
+      notFound: rows.some((row) => row.includes('NEXT_HTTP_ERROR_FALLBACK;404')) && rows.some((row) => row.includes('Pas encore dans la')) };
+  };
+  const normalised = async (response, slug) => {
+    const type = response.headers.get('content-type');
+    const body = Buffer.from(await response.arrayBuffer()).toString('latin1').replaceAll(slug, '<slug>');
+    return { status: response.status, type, body: canonical(body, type) };
+  };
+  for (const [hidden, absent] of [
+    [`/work/${ps}`, `/work/${unknown}`], [`/work/${ps}/inspect`, `/work/${unknown}/inspect`],
+    [`/asset/${asset(ps)}`, `/asset/${asset(unknown)}`], [`/work/${ps}/opengraph-image`, `/work/${unknown}/opengraph-image`],
+    [`/api/v1/references/${ps}`, `/api/v1/references/${unknown}`], [`/api/v1/references/${ps}?format=dossier`, `/api/v1/references/${unknown}?format=dossier`],
+    ['/brand/marque-confidentielle-temoin', '/brand/marque-inconnue-temoin'], ['/year/1907', '/year/1906'],
+  ]) {
+    const slugOf = (route) => (route.includes(ps) ? ps : route.includes(unknown) ? unknown : '');
+    const a = await normalised(await fetch(`${origin}${hidden}`), slugOf(hidden) || hidden.split('/').pop());
+    const b = await normalised(await fetch(`${origin}${absent}`), slugOf(absent) || absent.split('/').pop());
+    assert.deepEqual(a, b, `${hidden} answers exactly like ${absent}.`);
+    // The API answers HTTP 404. A page answers the not-found page of an unknown address: its
+    // status is the one Next gives every unknown dynamic address under the root loading.tsx.
+    if (hidden.startsWith('/api/')) assert.equal(a.status, 404, `${hidden} is not found without the key.`);
+    else if (!hidden.includes('opengraph-image')) assert.equal(a.body.notFound, true, `${hidden} renders the not-found page.`);
+  }
+  for (const route of surfaces) {
+    const text = await (await fetch(`${origin}${route}`)).text();
+    for (const secret of [ps, marker, markerBrand]) assert.ok(!text.includes(secret), `${route} must not reveal the private dossier.`);
+    // Search echoes its query and the sitemap dates itself per request: absence is checked above.
+    if (!route.startsWith('/search') && !['/', '/sitemap.xml'].includes(route)) assert.equal(text, before[route], `${route} is unchanged by a private dossier.`);
+  }
+  // The key reads it: Bearer for a server client, the session for a browser.
+  const keyRead = await fetch(`${origin}/api/v1/references/${ps}`, { headers: { Authorization: `Bearer ${key}` } });
+  assert.equal(keyRead.status, 200);
+  assert.match(keyRead.headers.get('cache-control') ?? '', /private, no-store/);
+  assert.equal((await keyRead.json()).data.visibility, 'private');
+  const reopened = (await login(key)).headers.get('set-cookie').split(';')[0];
+  const adminRead = await fetch(`${origin}/work/${ps}`, { ...manual, headers: { Cookie: reopened } });
+  assert.equal(adminRead.status, 200);
+  assert.match(adminRead.headers.get('cache-control') ?? '', /no-store/);
+  const adminHtml = await adminRead.text();
+  for (const expected of [marker, 'Publier le dossier', 'Purge prévue le', 'noindex']) assert.ok(adminHtml.includes(expected), `The session reads ${expected}.`);
+  for (const route of ['/works', `/search?q=${encodeURIComponent('confidentielle')}`, '/admin/prive']) {
+    assert.ok((await (await fetch(`${origin}${route}`, { headers: { Cookie: reopened } })).text()).includes(marker), `${route} lists it for the session.`);
+  }
+  assert.ok(!(await (await fetch(`${origin}/sitemap.xml`, { headers: { Cookie: reopened } })).text()).includes(ps), 'The sitemap never lists a private dossier.');
+  // Retention purge: explicit, with a dry-run that changes nothing.
+  const purgeCommand = (args) => execFileSync(process.execPath, ['../docker/purge-private.cjs', ...args],
+    { env: { ...env, ARGOS_URL: origin }, encoding: 'utf8' });
+  assert.match(purgeCommand(['--dry-run']), /aperçu/i);
+  assert.equal((await fetch(`${origin}/api/v1/references/${ps}`, { headers: { Authorization: `Bearer ${key}` } })).status, 200);
+  assert.throws(() => execFileSync(process.execPath, ['../docker/purge-private.cjs'], { env: { ...env, ARGOS_URL: origin }, stdio: 'pipe' }),
+    'Without an explicit mode the command refuses.');
+  // Explicit publication from the dossier page, then readable by all.
+  const published = await fetch(`${origin}/api/v1/references/${ps}/visibility`, { ...manual, method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: origin, Cookie: reopened },
+    body: new URLSearchParams({ visibility: 'public', version: privateReceipt.updatedAt }) });
+  assert.equal(published.status, 303);
+  assert.equal(published.headers.get('location'), `/work/${ps}?visibilite=publique`);
+  const publicRead = await fetch(`${origin}/work/${ps}`);
+  assert.equal(publicRead.status, 200);
+  assert.ok((await publicRead.text()).includes(marker));
+  console.info(JSON.stringify({ builtRuntime: true, anonymousWrite401: true, newReference200: true, unknownComposite: null, assetLicencePreserved: true, privateContactExcluded: true, amendmentFreshWithoutBuild: true, staleVersion409: true, adminPageWithoutSession303: true, signedSessionCookie: true, sessionWrite201: true, sessionWriteWithoutOrigin403: true, publicReads200: true,
+    privateLikeUnknown: true, privateAbsentFromAnonymousSurfaces: true, privateReadWithKey: true, purgeDryRun: true, explicitPublication303: true }));
 } catch (error) {
   console.error(logs);
   throw error;

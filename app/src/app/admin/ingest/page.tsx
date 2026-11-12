@@ -41,11 +41,16 @@ export default async function IngestPage({ searchParams }: { searchParams: Promi
             >
               Admin · Ingestion manuelle · session ouverte
             </p>
-            <form method="post" action="/api/admin/logout">
-              <button type="submit" className="pill" style={{ minHeight: 44, cursor: 'pointer' }}>
-                Fermer la session
-              </button>
-            </form>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <Link href="/admin/prive" className="pill" style={{ minHeight: 44, textDecoration: 'none' }}>
+                Espace privé
+              </Link>
+              <form method="post" action="/api/admin/logout">
+                <button type="submit" className="pill" style={{ minHeight: 44, cursor: 'pointer' }}>
+                  Fermer la session
+                </button>
+              </form>
+            </div>
           </div>
           <h1
             style={{

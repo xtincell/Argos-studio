@@ -4,7 +4,7 @@
 
 Argos est un répertoire éditorial de patterns créatifs gagnants, exploitable comme moteur de recherche public ou via API/MCP pour les systèmes IA.
 
-La bibliothèque et son parcours manuel conservent des opérations, leurs actifs, leurs analyses et leurs sources. Une clé unique d’administration (`ARGOS_ADMIN_KEY`) protège les écritures et l’administration ; la lecture, la recherche et l’API v1 restent publiques. L’accès MCP et l’espace privé des consultations restent à recevoir ([ADR-0009](docs/decisions/0009-vps-sqlite-cle-unique.md)).
+La bibliothèque et son parcours manuel conservent des opérations, leurs actifs, leurs analyses et leurs sources. Une clé unique d’administration (`ARGOS_ADMIN_KEY`) protège les écritures et l’administration ; la lecture, la recherche et l’API v1 restent publiques pour les dossiers publics ([ADR-0009](docs/decisions/0009-vps-sqlite-cle-unique.md)). Un espace privé, détenu par UPgraders et lu avec la même clé, garde des dossiers invisibles du public et les purge 24 mois après leur dernière modification ([ADR-0010](docs/decisions/0010-espace-prive-upgraders-retention.md)). L’accès MCP reste à recevoir.
 L’[état de réception](docs/RECEPTION-INTEGRITE.md) distingue le code, ses tests
 et les parcours effectivement éprouvés. Les personas décrivent des responsabilités
 spécialisées ; leur présence ne prouve pas des agents actifs.
@@ -45,6 +45,7 @@ redéploiement suivant.
 | `ARGOS_ADMIN_KEY` | exécution seulement, secret | 24 caractères au moins, par exemple `openssl rand -base64 33` |
 | `NEXT_PUBLIC_SITE_URL` | exécution **et** construction (*Build Variable*) | adresse publique, par exemple `https://argos.exemple.org` |
 | `DATABASE_URL` | facultative | défaut de l’image `file:/data/argos.db` ; un autre chemin doit rester sur le volume |
+| `ARGOS_PRIVATE_PURGE` | facultative | `off` désactive la purge quotidienne des dossiers privés (défaut : quotidienne) |
 
 Sans `ARGOS_ADMIN_KEY` (ou avec moins de 24 caractères), l’administration est fermée :
 écritures en 503, pages d’administration renvoyées à la connexion, qui le dit. L’ancienne
@@ -69,6 +70,53 @@ for f in app/public/dossier-*.json; do
 done
 ```
 
+### Espace privé et rétention
+
+Un dossier est **public** (défaut, tous les dossiers existants) ou **privé**. Un dossier privé
+appartient à UPgraders et ne se lit qu’avec la clé d’administration (en-tête
+`Authorization: Bearer` ou session de `/admin/login`). Sans elle, il n’existe pas : absent des
+listes, de la recherche, des compteurs et facettes, du plan du site, des images de partage, des
+exports et de l’API ; sa fiche et son API répondent exactement comme une adresse inconnue, et une
+filiation d’un dossier public vers lui est retirée de la lecture publique.
+
+```bash
+# Admettre un nouveau dossier dans l'espace privé (sans paramètre : public)
+curl -fsS -X POST -H "Authorization: Bearer $ARGOS_ADMIN_KEY" -H 'Content-Type: application/json' \
+  --data-binary @dossier.json 'https://argos.exemple.org/api/v1/ingest/dossier?visibility=private'
+
+# Publier (privé → public) ou retirer (public → privé) : action explicite, qui et quand enregistrés
+curl -fsS -X POST -H "Authorization: Bearer $ARGOS_ADMIN_KEY" -H 'Content-Type: application/json' \
+  -d '{"visibility":"public"}' https://argos.exemple.org/api/v1/references/<slug>/visibility
+```
+
+Un amendement garde la visibilité enregistrée. La publication applique au dossier conservé les
+règles d’admission des dossiers publics ; refusé, il reste privé (409 `PUBLICATION_REFUSED`).
+Depuis le navigateur : case « Admettre dans l’espace privé » de l’admission, bouton
+« Publier le dossier » / « Rendre privé » sur la fiche, liste et échéances sur `/admin/prive`.
+
+**Rétention.** Un dossier privé est purgé **24 mois après sa dernière modification** (contenu ou
+changement de visibilité, le plus récent des deux), sauf s’il a été publié. La purge supprime le
+dossier et tout ce qui lui appartient (actifs, sources, axes, métriques, annotations, révisions,
+filiations, historique), écrase les pages libérées (`secure_delete`) et journalise un compte, sans
+garder ni titre ni slug. Elle ne touche jamais un dossier public. Elle tourne chaque jour dans le
+serveur (première exécution cinq minutes après le démarrage ; `ARGOS_PRIVATE_PURGE=off` la
+désactive), et à la demande :
+
+```bash
+docker exec <conteneur> argos-purge-private --dry-run   # aperçu : dossiers échus, aucune écriture
+docker exec <conteneur> argos-purge-private --purge     # suppression, journalisée
+```
+
+Sans mode, la commande refuse (sortie 64). Elle demande le travail au serveur en cours avec la clé
+du conteneur, qui reste ainsi l’unique écrivain de la base. Hors conteneur :
+`ARGOS_URL=https://argos.exemple.org ARGOS_ADMIN_KEY=… node docker/purge-private.cjs --dry-run`,
+ou `POST /api/admin/private-purge` avec `{"mode":"dry-run"}` ou `{"mode":"purge"}`.
+
+Les copies `argos-backup` sont des bases entières : une sauvegarde antérieure à une purge garde
+les dossiers purgés jusqu’à sa propre suppression. La purge indique combien de copies existent ;
+supprimez celles qui dépassent la rétention. Argos n’écrit aucun fichier d’actif sur `/data` (les
+actifs sont des URL) : la base, son journal et les sauvegardes sont les seuls fichiers du volume.
+
 ### Sauvegarde et restauration du volume
 
 `argos-backup` produit une copie cohérente de la base sans arrêter le serveur
@@ -91,7 +139,8 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://argos.exemple.org -t argos
 docker/recette.sh argos-studio
 ```
 
-La recette (aussi lancée en CI) vérifie la lecture publique, les refus 401/503, la session,
+La recette (aussi lancée en CI) vérifie la lecture publique, les refus 401/503, la session, un
+dossier privé introuvable sans clé et lu avec elle, l’aperçu de purge,
 la conservation après redémarrage et après recréation du conteneur, la sauvegarde puis sa
 restauration sur un volume neuf, le refus de démarrer sans volume et l’absence de secret dans
 l’image. Elle supprime les conteneurs et volumes qu’elle crée.

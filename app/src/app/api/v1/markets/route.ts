@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { listMarkets } from '@/lib/library';
+import { requestReadScope, scopedJson } from '@/server/read-scope';
 
-export async function GET() {
-  const markets = await listMarkets();
-  return NextResponse.json({
+export async function GET(request: NextRequest) {
+  const scope = requestReadScope(request);
+  const markets = await listMarkets(scope);
+  return scopedJson({
     data: markets.map((m) => ({
       slug: m.slug,
       name: m.label,
@@ -12,5 +14,5 @@ export async function GET() {
       apiHref: `/api/v1/markets/${m.slug}`,
     })),
     meta: { total: markets.length },
-  });
+  }, scope);
 }

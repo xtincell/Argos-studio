@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { getReferencesBySector, getSectorMeta, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ interface SectorPageProps {
 }
 
 export async function generateMetadata({ params }: SectorPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesBySector(slug);
+  const refs = await getReferencesBySector(slug, scope);
   if (refs.length === 0) return { title: 'Secteur introuvable' };
   const meta = getSectorMeta(slug);
   const name = meta?.name ?? refs[0]?.sector ?? slug;
@@ -23,8 +25,9 @@ export async function generateMetadata({ params }: SectorPageProps): Promise<Met
 }
 
 export default async function SectorPage({ params }: SectorPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesBySector(slug);
+  const refs = await getReferencesBySector(slug, scope);
   if (refs.length === 0) notFound();
   const meta = getSectorMeta(slug);
   const name = meta?.name ?? refs[0]?.sector ?? slug;

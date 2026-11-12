@@ -3,6 +3,10 @@
 // return the transform audit.
 //
 // Used by the POST /api/v1/ingest/dossier route.
+//
+// Visibility (ADR-0010): a new reference is public unless admitted with visibility 'private'.
+// An amendment or a replay keeps the stored visibility; asking for another one is refused, as
+// publication and withdrawal are explicit actions of their own (src/server/visibility.ts).
 
 import { prisma, REFERENCE_INCLUDE } from '@/lib/db';
 import {
@@ -10,14 +14,20 @@ import {
   type ResearchDossier,
   type TransformResult,
 } from '@/lib/research-dossier';
+import type { Visibility } from '@/lib/visibility';
 
 export interface IngestRecord {
   result: TransformResult;
   newlyCreated: boolean;
   updatedAt: string;
+  visibility: Visibility;
 }
 
-export async function ingestDossier(dossier: ResearchDossier, expectedUpdatedAt?: string): Promise<IngestRecord> {
+export async function ingestDossier(
+  dossier: ResearchDossier,
+  expectedUpdatedAt?: string,
+  options: { visibility?: Visibility } = {},
+): Promise<IngestRecord> {
   const result = dossierToReference(dossier);
   const ref = result.reference;
 
@@ -34,10 +44,18 @@ export async function ingestDossier(dossier: ResearchDossier, expectedUpdatedAt?
         'IDENTITY_CONFLICT',
       );
     }
+    const storedVisibility: Visibility = existing?.visibility === 'private' ? 'private' : 'public';
+    if (existing && options.visibility && options.visibility !== storedVisibility) {
+      throw new IngestValidationError(
+        `Cette référence est ${storedVisibility === 'private' ? 'privée' : 'publique'}. Sa visibilité se change par POST /api/v1/references/${ref.slug}/visibility, pas par une admission.`,
+        'VISIBILITY_CONFLICT',
+      );
+    }
+    const visibility: Visibility = existing ? storedVisibility : (options.visibility ?? 'public');
     const retainedDossier = { ...dossier, researcher: { ...dossier.researcher, ...(dossier.researcher.contact === undefined && existing?.researcherContact ? { contact: existing.researcherContact } : {}) } };
     const canonicalDossier = JSON.stringify(retainedDossier);
     if (existing?.sourceDossierJson === canonicalDossier) {
-      return { newlyCreated: false, updatedAt: existing.updatedAt.toISOString() };
+      return { newlyCreated: false, updatedAt: existing.updatedAt.toISOString(), visibility };
     }
     if (existing && existing.updatedAt.toISOString() !== expectedUpdatedAt) {
       throw new IngestValidationError('La référence a une version existante. Rechargez le dossier avant de modifier.', 'VERSION_CONFLICT');
@@ -85,7 +103,7 @@ export async function ingestDossier(dossier: ResearchDossier, expectedUpdatedAt?
       if (update.count !== 1) throw new IngestValidationError('La référence a changé. Rechargez-la avant de modifier.', 'VERSION_CONFLICT');
       updatedAt = (await tx.reference.findUniqueOrThrow({ where: { id: ref.id } })).updatedAt.toISOString();
     } else {
-      updatedAt = (await tx.reference.create({ data: { id: ref.id, ...data } })).updatedAt.toISOString();
+      updatedAt = (await tx.reference.create({ data: { id: ref.id, ...data, visibility } })).updatedAt.toISOString();
     }
 
     // Replace children atomically. Wipe-and-rewrite is fine because IDs are
@@ -199,7 +217,7 @@ export async function ingestDossier(dossier: ResearchDossier, expectedUpdatedAt?
         },
       });
     }
-    return { newlyCreated: !existing, updatedAt };
+    return { newlyCreated: !existing, updatedAt, visibility };
   });
 
   return { result, ...outcome };

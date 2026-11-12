@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { EntityPageShell } from '@/components/entity-page-shell';
 import { getReferencesByMarket, slugify } from '@/lib/library';
+import { pageReadScope } from '@/server/read-scope';
 
 // Canonical library data changes after admission; never freeze its identities at build time.
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ interface MarketPageProps {
 }
 
 export async function generateMetadata({ params }: MarketPageProps): Promise<Metadata> {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByMarket(slug);
+  const refs = await getReferencesByMarket(slug, scope);
   if (refs.length === 0) return { title: 'Marché introuvable' };
   const marketName = displayName(refs[0]?.marketPrimary, refs, slug);
   return {
@@ -22,8 +24,9 @@ export async function generateMetadata({ params }: MarketPageProps): Promise<Met
 }
 
 export default async function MarketPage({ params }: MarketPageProps) {
+  const scope = await pageReadScope();
   const { slug } = await params;
-  const refs = await getReferencesByMarket(slug);
+  const refs = await getReferencesByMarket(slug, scope);
   if (refs.length === 0) notFound();
 
   const marketName = displayName(refs[0]?.marketPrimary, refs, slug);
