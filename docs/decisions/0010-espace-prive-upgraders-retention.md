@@ -105,9 +105,10 @@ purge `PrivatePurgeRun`. Migration additive : les dossiers existants restent pub
 
 **Neutres :**
 - `ConsultationRecord` reste sans lecteur ni écrivain ; il n’est pas l’espace privé.
-- Une page d’adresse inconnue est servie avec la page 404 de l’application ; son statut HTTP est
-  celui que Next donne à toute adresse dynamique inconnue sous le `loading.tsx` racine. Un dossier
-  privé répond exactement pareil. L’API répond HTTP 404.
+- Une page d’adresse inconnue répond HTTP 404 avec la page introuvable de l’application ; un
+  dossier privé lu sans la clé répond exactement pareil. L’API répond HTTP 404. (Précisé le
+  12 novembre : le statut était 200 tant que le `loading.tsx` racine ouvrait la réponse avant la
+  page ; ce chargement a été retiré, voir RECEPTION-INTEGRITE.)
 
 ## Suivi
 

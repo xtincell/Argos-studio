@@ -1,4 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+// Served with HTTP 404 for an unknown address, or a private dossier read without the key
+// (ADR-0010): one title for every kind of page, never indexed.
+export const metadata: Metadata = {
+  title: 'Introuvable',
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (
